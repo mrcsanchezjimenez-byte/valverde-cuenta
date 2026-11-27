@@ -24,7 +24,7 @@ function Guirnalda() {
       <path d="M0 26 Q 160 66 320 22" fill="none" stroke={C.oscuro} strokeWidth="1.5" />
       {puntos.map((x, i) => {
         const y = 28 + 14 * Math.sin((x / 320) * Math.PI)
-        return <path key={x} d={`M${x - 8} ${y}h16l-8 14z`} fill={i % 2 ? C.madera : '#B4502B'} />
+        return <path key={x} d={`M${x - 8} ${y}h16l-8 14z`} fill={i % 2 ? C.madera : '#A0582B'} />
       })}
     </g>
   )
@@ -78,7 +78,7 @@ const ESCENAS: Record<TipoEscena, ReactNode> = {
     <>
       <rect x="30" y="34" width="260" height="136" fill={C.fachada} />
       <rect x="30" y="34" width="260" height="20" fill={C.tejado} />
-      <rect x="46" y="66" width="110" height="18" fill="#B4502B" />
+      <rect x="46" y="66" width="110" height="18" fill="#A0582B" />
       <rect x="46" y="84" width="110" height="86" fill={C.madera} />
       <rect x="190" y="72" width="30" height="36" fill={C.oscuro} />
       <rect x="230" y="72" width="30" height="36" fill={C.oscuro} />
@@ -95,8 +95,8 @@ const ESCENAS: Record<TipoEscena, ReactNode> = {
   ),
   teatro: (
     <>
-      <rect x="0" y="0" width="320" height="24" fill="#8F3E20" />
-      <path d="M0 0h70c0 60-20 110-70 150zM320 0h-70c0 60 20 110 70 150z" fill="#B4502B" />
+      <rect x="0" y="0" width="320" height="24" fill="#7A4220" />
+      <path d="M0 0h70c0 60-20 110-70 150zM320 0h-70c0 60 20 110 70 150z" fill="#A0582B" />
       <ellipse cx="160" cy="165" rx="130" ry="18" fill={C.oscuro} />
       <Personas xs={[135, 185]} y={102} />
     </>
@@ -105,7 +105,7 @@ const ESCENAS: Record<TipoEscena, ReactNode> = {
     <>
       <path d="M50 150 Q160 60 270 150z" fill={C.fachada} />
       <Personas xs={[90, 135, 185, 230]} y={106} />
-      <path d="M268 40v34a9 7 0 1 1-5-6V48l28-7v28a9 7 0 1 1-5-6V34z" fill="#B4502B" />
+      <path d="M268 40v34a9 7 0 1 1-5-6V48l28-7v28a9 7 0 1 1-5-6V34z" fill="#A0582B" />
     </>
   ),
   libro: (

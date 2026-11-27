@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { MapaInteractivo } from '../componentes/MapaInteractivo'
-import { proximosEventos } from '../datos/repositorio'
+import { useAgenda } from '../datos/repositorio'
 
 const CAPAS = [
   { id: 'todo', nombre: 'Eventos y yincana' },
@@ -12,7 +12,7 @@ type Capa = (typeof CAPAS)[number]['id']
 
 export function Mapa() {
   const [capa, setCapa] = useState<Capa>('todo')
-  const proximos = proximosEventos()
+  const { proximos } = useAgenda()
   const eventos =
     capa === 'yincana' ? [] : proximos.filter((e) => e.zona === (capa === 'alrededores' ? 'alrededores' : 'valverde'))
 

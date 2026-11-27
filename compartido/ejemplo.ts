@@ -1,8 +1,11 @@
-import type { Categoria, Evento } from './tipos'
+import type { Evento } from './tipos.ts'
 
 /**
  * EVENTOS DE EJEMPLO. Fechas, organizadores y precios son inventados para enseñar la app.
  * Los lugares sí son reales (coordenadas de OpenStreetMap).
+ *
+ * Se usan en dos sitios: la versión de demostración (GitHub Pages, sin servidor) y
+ * `npm run sembrar`, que los mete en la base de datos local para probar.
  */
 const TEATRO = { lugar: 'Teatro Municipal Puerta del Andévalo', lat: 37.575099, lng: -6.750136 }
 const CONSTITUCION = { lugar: 'Plaza de la Constitución', lat: 37.573977, lng: -6.74894 }
@@ -145,13 +148,4 @@ export const EVENTOS: Evento[] = [
     inicio: '2027-02-06T17:00', fin: '2027-02-06T20:00',
     organizador: 'Colectivo local', precio: null, publico: 'Todos los públicos', categoria: 'fiestas', paraNinos: true, escena: 'fiesta',
   },
-]
-
-export const CATEGORIAS: { id: Categoria; nombre: string; emoji: string }[] = [
-  { id: 'teatro', nombre: 'Teatro', emoji: '🎭' },
-  { id: 'musica', nombre: 'Música', emoji: '🎶' },
-  { id: 'fiestas', nombre: 'Fiestas', emoji: '🎉' },
-  { id: 'ninos', nombre: 'Niños', emoji: '🧒' },
-  { id: 'patrimonio', nombre: 'Patrimonio', emoji: '🏛️' },
-  { id: 'mercados', nombre: 'Mercados', emoji: '🧺' },
 ]

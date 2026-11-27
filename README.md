@@ -1,32 +1,58 @@
 # Valverde Cuenta
 
-Webapp instalable (PWA) de 27 Vueltas para Valverde del Camino: agenda de eventos del pueblo y alrededores, y yincana cultural de cinco paradas con el recorrido en mapa. Sin registro.
+El sitio donde están todos los eventos de Valverde del Camino y los pueblos de alrededor (unos 20 km).
+Proyecto independiente que llevan Pilar y Marcos.
 
-## Para trabajar
+- **Agenda**: asociaciones, hermandades, AMPAs, clubes e instituciones envían sus eventos gratis; dirección los revisa antes de publicarlos.
+- **Comercios y empresas**: se anuncian pagando (fase 3).
+- **Historias del pueblo**: recogidas de la gente y leídas en QR repartidos por el pueblo (fase 2).
+- **Yincana cultural** por el casco urbano.
+
+Plan por fases: [docs/fases.md](docs/fases.md) · Seguridad: [docs/seguridad.md](docs/seguridad.md) · Manual del panel: [docs/gestion.md](docs/gestion.md)
+
+## Las tres piezas
+
+| Pieza | Carpeta | En local |
+|---|---|---|
+| **App** que usa la gente (será nativa con Capacitor; hoy también web instalable) | `src/` | http://localhost:5273/valverde-cuenta/ |
+| **Panel de gestión**: dirección revisa; las entidades envían eventos | `gestion/` | http://localhost:5274/gestion/ |
+| **Servidor**: datos, cuentas y seguridad (Node + SQLite, sin servicios externos) | `servidor/` | http://localhost:8787 |
+
+`compartido/` tiene lo que usan las tres: tipos, categorías y la comprobación del CIF.
+
+## Para trabajar en local
+
+Hace falta Node 24 o superior.
 
 ```bash
 npm install
-npm run dev
+npm run dev:servidor     # servidor (la primera vez crea .env con una clave aleatoria)
+npm run dev:gestion      # panel de gestión
+npm run dev              # app
 ```
 
-Cada cambio en la rama `main` se publica solo en GitHub Pages.
+La primera vez:
 
-## Dónde está cada cosa
+```bash
+npm run sembrar                                              # eventos de ejemplo (solo local)
+npm run admin -- crear-direccion correo@ejemplo.es "Nombre"  # cuenta de dirección: da un enlace para poner contraseña
+```
 
-- `src/datos/eventos.ts`: la agenda. **Hoy son eventos de ejemplo.**
-- `src/datos/yincana.ts`: paradas, relatos y preguntas. **Paradas propuestas y relatos de ejemplo.**
-- `src/datos/repositorio.ts`: único punto de acceso a los datos. Aquí se conectará la fuente real.
-- `src/nativo/index.ts`: todo lo que toca el dispositivo (compartir, calendario, ubicación, almacenamiento).
-- `src/pantallas/`: una pantalla por archivo.
+En local los correos no se envían: aparecen en la consola del servidor y en `servidor/datos/correos/`.
 
-## Camino a app nativa
+## Comprobar
 
-La app está preparada para empaquetarse con Capacitor sin rehacer las pantallas:
+```bash
+npm test        # pruebas del servidor, incluidas las de seguridad
+npm run build   # compila app y panel
+npm run lint
+```
 
-- Las rutas usan `HashRouter`, que funciona igual dentro de una app nativa.
-- Las funciones del dispositivo están aisladas en `src/nativo/`, y se cambian por plugins nativos.
-- Compilar con `VITE_BASE=/` para quitar la ruta de GitHub Pages.
+## Publicación
 
-## Datos del mapa
+- Cada cambio en `main` publica en GitHub Pages una **versión de demostración** de la app, con eventos de ejemplo y sin servidor (`VITE_DEMO=1`).
+- El servidor y el panel aún no están publicados en ningún sitio: es la fase 5.
 
-Lugares, ruta a pie y mapa base de OpenStreetMap. Sus servidores públicos sirven para esta fase de prueba. Con tráfico real habrá que pasar a un proveedor de mapas propio, porque su política de uso limita el uso intensivo.
+## Nunca al repositorio
+
+`.env` (la clave del servidor) y `servidor/datos/` (base de datos, copias y correos) están en `.gitignore`. Si alguna vez se suben por error, hay que cambiar la clave.

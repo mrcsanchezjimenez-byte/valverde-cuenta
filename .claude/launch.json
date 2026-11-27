@@ -2,6 +2,20 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "servidor",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:servidor"],
+      "port": 8787,
+      "url": "http://localhost:8787"
+    },
+    {
+      "name": "gestion",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:gestion"],
+      "port": 5274,
+      "url": "http://localhost:5274"
+    },
+    {
       "name": "valverde-cuenta",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--", "--port", "5273", "--strictPort"],

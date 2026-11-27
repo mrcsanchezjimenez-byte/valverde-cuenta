@@ -13,7 +13,7 @@ export function Historias() {
       <article className="tarjeta-proximamente">
         <Escena tipo="calle" />
         <div>
-          <span className="etiqueta etiqueta-mostaza">Próximamente</span>
+          <span className="etiqueta etiqueta-cuero">Próximamente</span>
           <h2><Icono n="historias" tam={20} /> Radio 27</h2>
           <p className="suave">Testimonios de vecinos sobre calles, oficios y tradiciones, con su transcripción.</p>
         </div>
@@ -22,7 +22,7 @@ export function Historias() {
       <article className="tarjeta-proximamente">
         <Escena tipo="fiesta" />
         <div>
-          <span className="etiqueta etiqueta-mostaza">Próximamente</span>
+          <span className="etiqueta etiqueta-cuero">Próximamente</span>
           <h2><Icono n="agenda" tam={20} /> Fotos de antes</h2>
           <p className="suave">Fotografías antiguas cedidas por las familias, para buscar por época, fiesta o lugar.</p>
         </div>

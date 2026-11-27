@@ -3,16 +3,17 @@ import { Escena } from '../componentes/Escena'
 import { Icono } from '../componentes/Iconos'
 import { textoPrecio } from '../componentes/TarjetasEvento'
 import { fecha, fechaLarga, hora } from '../datos/fechas'
-import { obtenerEvento } from '../datos/repositorio'
+import { MODO_DEMO, useEvento } from '../datos/repositorio'
 import { alternarGuardado, useGuardados } from '../estado/almacen'
-import { abrirIndicaciones, anadirACalendario, compartir } from '../nativo'
+import { abrirEnlace, abrirIndicaciones, anadirACalendario, compartir } from '../nativo'
 
 export function FichaEvento() {
   const { id = '' } = useParams()
   const navegar = useNavigate()
   const guardados = useGuardados()
-  const evento = obtenerEvento(id)
+  const { evento, estado } = useEvento(id)
 
+  if (!evento && estado === 'cargando') return <div className="pantalla"><p className="suave">Cargando…</p></div>
   if (!evento) {
     return (
       <div className="pantalla vacio">
@@ -45,9 +46,10 @@ export function FichaEvento() {
 
       <div className="ficha-cuerpo">
         <div className="etiquetas">
-          <span className="etiqueta etiqueta-mostaza">{evento.organizador}</span>
+          <span className="etiqueta etiqueta-cuero">{evento.organizador}</span>
           {evento.precio === null && <span className="etiqueta etiqueta-verde-solida">Gratis</span>}
-          <span className="etiqueta etiqueta-ejemplo">Evento de ejemplo</span>
+          {evento.cancelado && <span className="etiqueta etiqueta-cancelado">Cancelado</span>}
+          {MODO_DEMO && <span className="etiqueta etiqueta-ejemplo">Evento de ejemplo</span>}
         </div>
         <h1>{evento.titulo}</h1>
 
@@ -65,7 +67,13 @@ export function FichaEvento() {
           <div><b>{textoPrecio(evento)}</b><small>{evento.publico}</small></div>
         </div>
 
+        {evento.cancelado && <p className="aviso-cancelado">La organización ha cancelado este evento.</p>}
         <p className="ficha-texto">{evento.descripcion}</p>
+        {evento.enlace && (
+          <button className="enlace-externo" onClick={() => abrirEnlace(evento.enlace!)}>
+            <Icono n="adelante" tam={16} /> Más información de la organización
+          </button>
+        )}
 
         {evento.enlazaYincana && (
           <Link to="/yincana" className="relacionado">

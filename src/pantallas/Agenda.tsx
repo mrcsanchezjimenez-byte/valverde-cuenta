@@ -3,9 +3,9 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { AvisoEjemplo } from '../componentes/Avisos'
 import { MapaInteractivo } from '../componentes/MapaInteractivo'
 import { FilaEvento } from '../componentes/TarjetasEvento'
-import { CATEGORIAS } from '../datos/eventos'
+import { CATEGORIAS } from '../../compartido/categorias.ts'
 import { claveDia, esEsteFinde, esHoy, fecha, fechaLarga, mesLargo } from '../datos/fechas'
-import { proximosEventos, todosLosEventos } from '../datos/repositorio'
+import { URL_GESTION, useAgenda } from '../datos/repositorio'
 import type { Evento } from '../datos/tipos'
 import { useGuardados } from '../estado/almacen'
 import { Icono } from '../componentes/Iconos'
@@ -43,11 +43,20 @@ function agruparPorDia(eventos: Evento[]) {
   return [...grupos.entries()]
 }
 
-function Lista({ eventos, filtro }: { eventos: Evento[]; filtro: string }) {
+function Lista({ eventos, filtro, estado, reintentar }: { eventos: Evento[]; filtro: string; estado: string; reintentar: () => void }) {
+  if (estado === 'cargando' && !eventos.length) return <p className="suave">Cargando la agenda…</p>
+  if (estado === 'sin-conexion') {
+    return (
+      <div className="vacio">
+        <p>No hemos podido cargar la agenda. Comprueba la conexión.</p>
+        <button className="boton boton-suave" onClick={reintentar}>Reintentar</button>
+      </div>
+    )
+  }
   if (!eventos.length) {
     return (
       <div className="vacio">
-        <p>{filtro === 'guardados' ? 'Aún no has guardado ningún evento. Pulsa el corazón en su ficha.' : 'No hay eventos con este filtro.'}</p>
+        <p>{filtro === 'guardados' ? 'Aún no has guardado ningún evento. Pulsa el corazón en su ficha.' : filtro === 'todo' ? 'Aún no hay eventos en la agenda.' : 'No hay eventos con este filtro.'}</p>
         <Link to="/agenda" className="boton boton-suave">Ver toda la agenda</Link>
       </div>
     )
@@ -128,8 +137,9 @@ export function Agenda() {
     setParams(nuevos, { replace: true })
   }
 
-  const proximos = proximosEventos().filter((e) => cumple(e, filtro, guardados))
-  const todos = todosLosEventos().filter((e) => cumple(e, filtro, guardados))
+  const agenda = useAgenda()
+  const proximos = agenda.proximos.filter((e) => cumple(e, filtro, guardados))
+  const todos = agenda.todos.filter((e) => cumple(e, filtro, guardados))
 
   return (
     <div className={vista === 'mapa' ? 'pantalla pantalla-con-mapa' : 'pantalla'}>
@@ -157,7 +167,11 @@ export function Agenda() {
       {vista === 'lista' && (
         <>
           <AvisoEjemplo>Estos eventos son de ejemplo, no están confirmados.</AvisoEjemplo>
-          <Lista eventos={proximos} filtro={filtro} />
+          <Lista eventos={proximos} filtro={filtro} estado={agenda.estado} reintentar={() => void agenda.reintentar()} />
+          <a className="publica-evento" href={URL_GESTION} target="_blank" rel="noopener noreferrer">
+            <b>¿Organizas algo en Valverde?</b>
+            <span>Asociaciones, hermandades, AMPAs, clubes e instituciones publican gratis aquí.</span>
+          </a>
         </>
       )}
       {vista === 'calendario' && <Calendario eventos={todos} />}

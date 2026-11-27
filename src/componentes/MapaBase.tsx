@@ -65,7 +65,7 @@ export function MapaBase({ marcas, conRuta = false, ajustar, ubicacion }: {
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         maxZoom={19}
       />
-      {conRuta && <Polyline positions={RUTA_PUNTOS} pathOptions={{ color: '#B4502B', weight: 4, dashArray: '2 9', lineCap: 'round' }} />}
+      {conRuta && <Polyline positions={RUTA_PUNTOS} pathOptions={{ color: '#1E5B43', weight: 4, dashArray: '2 9', lineCap: 'round' }} />}
       {marcas.map((m) => <Marcador key={m.id} marca={m} />)}
       {ubicacion && (
         <CircleMarker center={[ubicacion.lat, ubicacion.lng]} radius={8} pathOptions={{ color: '#fff', weight: 3, fillColor: '#2F6FDE', fillOpacity: 1 }} />

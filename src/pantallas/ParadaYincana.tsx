@@ -55,7 +55,7 @@ export function ParadaYincana() {
       </div>
 
       <section className="relato">
-        <span className="etiqueta etiqueta-mostaza">Recuerdo personal</span>
+        <span className="etiqueta etiqueta-cuero">Recuerdo personal</span>
         <p>«{parada.relato}»</p>
         <small>{parada.voz}. Aquí sonará el audio del testimonio.</small>
       </section>

@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Valverde Cuenta: secretos y datos que nunca van al repositorio
+.env
+.env.*
+servidor/datos/
+dist-gestion

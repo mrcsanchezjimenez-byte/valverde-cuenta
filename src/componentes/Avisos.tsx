@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { MODO_DEMO } from '../datos/repositorio'
 
 /** Mensaje breve sobre la barra inferior. Se lanza con avisar() desde el puente nativo. */
 export function Avisos() {
@@ -19,6 +20,8 @@ export function Avisos() {
   return texto ? <div className="aviso" role="status">{texto}</div> : null
 }
 
+/** Solo en la versión de demostración, que usa datos de ejemplo. */
 export function AvisoEjemplo({ children }: { children: string }) {
+  if (!MODO_DEMO) return null
   return <p className="aviso-ejemplo"><strong>Versión de prueba.</strong> {children}</p>
 }

@@ -45,6 +45,11 @@ export async function compartir(titulo: string, texto: string, ruta: string) {
   }
 }
 
+/** Abre la web de un organizador. Solo http(s): el servidor ya lo filtra, pero se comprueba otra vez aquí. */
+export function abrirEnlace(url: string) {
+  if (/^https?:\/\//i.test(url)) window.open(url, '_blank', 'noopener,noreferrer')
+}
+
 export function abrirIndicaciones(lat: number, lng: number) {
   window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=walking`, '_blank', 'noopener')
 }
@@ -70,7 +75,7 @@ const plegar = (linea: string) => linea.match(/.{1,70}/g)!.join('\r\n ')
 export function textoCalendario(e: Evento, ahora = new Date()) {
   const sello = ahora.toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '')
   return [
-    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//27 Vueltas//Valverde Cuenta//ES', 'BEGIN:VEVENT',
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Valverde Cuenta//Agenda//ES', 'BEGIN:VEVENT',
     `UID:${e.id}@valverde-cuenta`, `DTSTAMP:${sello}`, `DTSTART:${fechaIcs(e.inicio)}`, `DTEND:${fechaIcs(e.fin)}`,
     `SUMMARY:${escaparIcs(e.titulo)}`, `LOCATION:${escaparIcs(`${e.lugar}, ${e.municipio}`)}`,
     `DESCRIPTION:${escaparIcs(e.descripcion)}`,

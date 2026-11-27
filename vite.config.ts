@@ -8,6 +8,8 @@ const base = process.env.VITE_BASE ?? '/valverde-cuenta/'
 
 export default defineConfig({
   base,
+  // En local, la app pide la agenda al servidor de desarrollo (npm run dev:servidor).
+  server: { proxy: { '/api': 'http://127.0.0.1:8787' } },
   plugins: [
     react(),
     VitePWA({
@@ -22,8 +24,8 @@ export default defineConfig({
         scope: './',
         display: 'standalone',
         orientation: 'portrait',
-        background_color: '#FBF6EE',
-        theme_color: '#FBF6EE',
+        background_color: '#FAF8F3',
+        theme_color: '#FAF8F3',
         icons: [
           { src: 'iconos/icono-192.png', sizes: '192x192', type: 'image/png' },
           { src: 'iconos/icono-512.png', sizes: '512x512', type: 'image/png' },
@@ -32,6 +34,8 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // La agenda nunca se sirve desde la caché del service worker: la app guarda su propia copia.
+        navigateFallbackDenylist: [/^\/api\//],
       },
     }),
   ],

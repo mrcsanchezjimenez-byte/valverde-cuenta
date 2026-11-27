@@ -38,7 +38,7 @@ export function HojaCompartir({ alCerrar }: { alCerrar: () => void }) {
         <p className="suave">Escanea este código con la cámara. No hace falta registrarse ni descargar nada.</p>
         <svg className="qr" viewBox={`-2 -2 ${modulos.n + 4} ${modulos.n + 4}`} role="img" aria-label="Código QR de la app">
           <rect x="-2" y="-2" width={modulos.n + 4} height={modulos.n + 4} fill="#fff" />
-          <path d={modulos.d} fill="#2A1F1A" />
+          <path d={modulos.d} fill="#17211D" />
         </svg>
         <button className="boton boton-primario boton-ancho" onClick={() => compartir('Valverde Cuenta', 'Qué hacer en Valverde del Camino', '/')}>
           <Icono n="compartir" tam={18} /> Compartir enlace

@@ -5,7 +5,7 @@ import { anadirACalendario } from '../nativo'
 import { Escena } from './Escena'
 import { Icono } from './Iconos'
 
-export const textoPrecio = (e: Evento) => (e.precio === null ? 'Gratis' : `${e.precio} €`)
+export const textoPrecio = (e: Evento) => (e.precio === null ? 'Gratis' : `${e.precio.toLocaleString('es-ES')} €`)
 
 export function TarjetaGrande({ evento }: { evento: Evento }) {
   const d = fecha(evento.inicio)
@@ -15,7 +15,9 @@ export function TarjetaGrande({ evento }: { evento: Evento }) {
         <div className="tarjeta-grande-imagen">
           <Escena tipo={evento.escena} />
           <div className="sello-fecha"><small>{diaSemanaCorto(d)}</small><b>{d.getDate()}</b></div>
-          {evento.precio === null && <span className="etiqueta etiqueta-verde-solida">Gratis</span>}
+          {evento.cancelado
+            ? <span className="etiqueta etiqueta-cancelado">Cancelado</span>
+            : evento.precio === null && <span className="etiqueta etiqueta-verde-solida">Gratis</span>}
         </div>
         <h3>{evento.titulo}</h3>
         <p className="suave">{hora(evento.inicio)} · {evento.lugar}</p>
@@ -35,7 +37,8 @@ export function FilaEvento({ evento }: { evento: Evento }) {
     <Link to={`/evento/${evento.id}`} className="fila-evento">
       <Escena tipo={evento.escena} clase="miniatura" />
       <div>
-        <span className="etiqueta etiqueta-mostaza">{evento.organizador}</span>
+        <span className="etiqueta etiqueta-cuero">{evento.organizador}</span>
+        {evento.cancelado && <span className="etiqueta etiqueta-cancelado">Cancelado</span>}
         <h3>{evento.titulo}</h3>
         <p className="suave">
           {hora(evento.inicio)} · {evento.zona === 'alrededores' ? evento.municipio : evento.lugar} · {textoPrecio(evento)}
