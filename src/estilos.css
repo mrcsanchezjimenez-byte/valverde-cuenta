@@ -270,3 +270,6 @@ h1 em { font-style: normal; color: var(--primario); padding-bottom: 7px; backgro
 .publica-evento { display: flex; flex-direction: column; gap: 2px; margin-top: 10px; padding: 14px 16px; border-radius: var(--radio); background: var(--cuero-claro); color: var(--tinta); }
 .publica-evento b { color: var(--cuero-oscuro); }
 .publica-evento span { color: var(--suave); font-size: 14px; }
+
+/* Aviso de responsabilidad: discreto pero legible */
+.nota-legal { font-size: 12.5px; line-height: 1.45; color: var(--suave); border-top: 1px solid var(--borde); padding-top: 10px; margin-top: 4px; }

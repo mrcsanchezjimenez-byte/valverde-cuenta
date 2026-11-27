@@ -1,7 +1,7 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { LETRAS_GRATIS, motivoCifNoGratis } from '../../../compartido/cif.ts'
-import { TIPOS_ENTIDAD } from '../../../compartido/tipos.ts'
+import { AVISO_AGENDA, TIPOS_ENTIDAD } from '../../../compartido/tipos.ts'
 import { api } from '../api.ts'
 import { AccesoDemo, PistaCodigoDemo } from '../componentes/Demo.tsx'
 import { Bien, Fallo, Qr, useAccion, useMunicipios } from '../componentes/piezas.tsx'
@@ -361,7 +361,8 @@ export function AltaEntidad() {
           <span>
             Declaro que represento a esta entidad, que no tiene ánimo de lucro o es pública, y acepto las normas de la agenda:
             no se publica propaganda política ni sindical, ni publicidad de empresas o comercios.
-            Los datos de contacto se usan solo para gestionar la cuenta.
+            {' '}{AVISO_AGENDA.entidad}
+            {' '}Los datos de contacto se usan solo para gestionar la cuenta.
           </span>
         </label>
         <Fallo>{error}</Fallo>

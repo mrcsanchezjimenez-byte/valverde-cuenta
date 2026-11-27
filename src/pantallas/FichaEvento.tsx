@@ -5,6 +5,7 @@ import { textoPrecio } from '../componentes/TarjetasEvento'
 import { fecha, fechaLarga, hora } from '../datos/fechas'
 import { MODO_DEMO, useEvento } from '../datos/repositorio'
 import { alternarGuardado, useGuardados } from '../estado/almacen'
+import { AVISO_AGENDA } from '../../compartido/tipos.ts'
 import { abrirEnlace, abrirIndicaciones, anadirACalendario, compartir } from '../nativo'
 
 export function FichaEvento() {
@@ -81,6 +82,8 @@ export function FichaEvento() {
             <span><small>También por tu cuenta</small><b>Ver el recorrido de la yincana</b></span>
           </Link>
         )}
+
+        <p className="nota-legal">{AVISO_AGENDA.corto.replace('{organizador}', evento.organizador)}</p>
       </div>
 
       <div className="ficha-accion">

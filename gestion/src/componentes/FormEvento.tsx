@@ -174,7 +174,7 @@ export function FormEvento({ inicial, municipios, ajustesIniciales, conOrganizad
       {modo !== 'direccion' && (
         <label className="g-casilla g-declaracion">
           <input type="checkbox" checked={declaracion} onChange={(e) => setDeclaracion(e.target.checked)} />
-          <span>Declaro que lo organiza nuestra entidad (o colabora en él), que no es propaganda política ni sindical y que no es publicidad de una empresa o comercio.</span>
+          <span>Declaro que lo organiza nuestra entidad (o colabora en él), que no es propaganda política ni sindical y que no es publicidad de una empresa o comercio. Somos responsables de su desarrollo: Valverde Cuenta solo lo difunde.</span>
         </label>
       )}
 

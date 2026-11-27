@@ -64,7 +64,7 @@ export function Yincana() {
         })}
       </ol>
 
-      <p className="nota-seguridad">Camina con cuidado: guarda el móvil al cruzar y respeta el tráfico. Puedes parar y seguir otro día; tu progreso se guarda en este móvil.</p>
+      <p className="nota-seguridad">El recorrido va por calles abiertas al tráfico: guarda el móvil al cruzar, usa los pasos de peatones y, si vas con peques, llévalos de la mano. Cada cual lo hace a su ritmo y bajo su responsabilidad. Puedes parar y seguir otro día: tu progreso se guarda en este móvil.</p>
     </div>
   )
 }

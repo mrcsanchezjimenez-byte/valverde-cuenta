@@ -5,6 +5,7 @@ import { MapaInteractivo } from '../componentes/MapaInteractivo'
 import { FilaEvento } from '../componentes/TarjetasEvento'
 import { CATEGORIAS } from '../../compartido/categorias.ts'
 import { claveDia, esEsteFinde, esHoy, fecha, fechaLarga, mesLargo } from '../datos/fechas'
+import { AVISO_AGENDA } from '../../compartido/tipos.ts'
 import { URL_GESTION, useAgenda } from '../datos/repositorio'
 import type { Evento } from '../datos/tipos'
 import { useGuardados } from '../estado/almacen'
@@ -172,6 +173,7 @@ export function Agenda() {
             <b>¿Organizas algo en Valverde?</b>
             <span>Asociaciones, hermandades, AMPAs, clubes e instituciones publican gratis aquí.</span>
           </a>
+          <p className="nota-legal">{AVISO_AGENDA.general}</p>
         </>
       )}
       {vista === 'calendario' && <Calendario eventos={todos} />}

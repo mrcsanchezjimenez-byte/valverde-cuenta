@@ -111,3 +111,69 @@ export function distanciaKm(a: { lat: number; lng: number }, b: { lat: number; l
   const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2
   return 2 * 6371 * Math.asin(Math.sqrt(h))
 }
+
+// ——— Fase 2: historias del pueblo y lugares con QR ———
+
+export type EstadoHistoria = 'pendiente' | 'publicada' | 'rechazada' | 'retirada'
+
+export interface ArchivoPublico {
+  clave: string
+  tipo: 'foto' | 'audio'
+  /** Dirección para cargarlo: relativa al servidor (/api/...) o, en la demo, un data: URL. */
+  url: string
+  pie: string
+}
+
+export interface LugarResumen {
+  slug: string
+  nombre: string
+}
+
+/** Una historia tal y como la ve el público. */
+export interface Historia {
+  slug: string
+  titulo: string
+  texto: string
+  epoca: string
+  /** Firma pública: el nombre o «Un vecino o vecina». */
+  autor: string
+  lugar: LugarResumen | null
+  lugarTexto: string
+  archivos: ArchivoPublico[]
+  fecha: string
+}
+
+export interface Lugar {
+  slug: string
+  nombre: string
+  descripcion: string
+  direccion: string
+  lat: number
+  lng: number
+  historias: number
+}
+
+/** Textos de consentimiento: si cambian, se sube la versión y queda guardado qué aceptó cada persona. */
+export const VERSION_CONSENTIMIENTO = '2026-11-27'
+export const CONSENTIMIENTOS = {
+  cesion: 'Cedo a Valverde Cuenta, sin cobrar nada, el permiso para publicar esta historia, sus fotos y su audio en la app, la web y materiales del proyecto. Puedo pedir que se retire cuando quiera.',
+  autoria: 'La historia es mía o me la contó alguien que está de acuerdo en compartirla, y las fotos y el audio son míos o tengo permiso para enviarlos.',
+  personas: 'Si en las fotos o en el audio aparecen otras personas, tengo su permiso (o el de su familia).',
+  edad: 'Soy mayor de 14 años (o lo envío con permiso de mi madre, padre o tutor).',
+} as const
+export type Consentimiento = keyof typeof CONSENTIMIENTOS
+
+export const EPOCAS = ['Antes de 1936', '1936–1960', '1960–1980', '1980–2000', 'Desde 2000', 'No lo sé'] as const
+
+/** Límites de los archivos: el servidor los comprueba; la app los avisa antes de enviar. */
+export const LIMITES_ARCHIVOS = { fotos: 4, bytesFoto: 6 * 1024 * 1024, bytesAudio: 20 * 1024 * 1024 }
+
+/**
+ * Aviso de responsabilidad de la agenda. Valverde Cuenta difunde, no organiza: cada actividad es
+ * de quien la anuncia. Solo se garantiza que la entidad que publica es quien dice ser.
+ */
+export const AVISO_AGENDA = {
+  corto: 'Valverde Cuenta solo difunde la agenda: no organiza esta actividad ni responde de cómo se desarrolla. Lo organiza y es responsable {organizador}. Nosotros comprobamos que la entidad que la anuncia es quien dice ser.',
+  general: 'Valverde Cuenta difunde las actividades que anuncian asociaciones e instituciones, pero no las organiza ni responde de su desarrollo: cada una es responsabilidad de quien la organiza. Lo único que garantizamos es la identidad de la entidad que publica.',
+  entidad: 'Nuestra entidad organiza (o coorganiza) lo que publica y es la única responsable de su desarrollo, permisos, seguros y seguridad. Valverde Cuenta solo difunde la información.',
+}
