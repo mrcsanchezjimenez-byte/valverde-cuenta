@@ -46,7 +46,10 @@ async function leerFormulario(c: C) {
   } catch {
     throw fallo(400, 'La petición no es válida.')
   }
-  const lugar = cadena(campos.lugarId)
+  const slug = cadena(campos.lugarSlug)
+  const porSlug = slug ? uno<{ id: number }>('SELECT id FROM lugares WHERE slug = ? AND activo = 1', slug)?.id : undefined
+  if (slug && !porSlug) throw fallo(400, 'Ese lugar no existe.')
+  const lugar = porSlug ? String(porSlug) : cadena(campos.lugarId)
   const r = esquemaHistoria.safeParse({
     titulo: cadena(campos.titulo), texto: cadena(campos.texto), epoca: cadena(campos.epoca), lugarId: lugar ? Number(lugar) : null,
     lugarTexto: cadena(campos.lugarTexto), firma: cadena(campos.firma) || 'anonimo', autor: cadena(campos.autor),

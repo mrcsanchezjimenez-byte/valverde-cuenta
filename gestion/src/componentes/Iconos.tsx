@@ -18,6 +18,13 @@ const TRAZOS = {
   aviso: 'M12 3l10 18H2zM12 10v5M12 18v.01',
   salir: 'M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 16l-4-4 4-4M6 12h10',
   lapiz: 'M4 20h4L19 9l-4-4L4 16zM14 6l4 4',
+  libro: 'M4 5.5C4 4.7 4.7 4 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5zM20 5.5c0-.8-.7-1.5-1.5-1.5H13v16h5.5c.8 0 1.5-.7 1.5-1.5z',
+  microfono: 'M12 3a3 3 0 0 0-3 3v5a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM6 11a6 6 0 0 0 12 0M12 17v4M9 21h6',
+  qr: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2M14 20h2M18 18h2v2',
+  imprimir: 'M7 9V4h10v5M7 17H5a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-2M7 14h10v6H7z',
+  descargar: 'M12 4v11M7 10l5 5 5-5M5 20h14',
+  mas2: 'M5 12h.01M12 12h.01M19 12h.01',
+  parar: 'M7 7h10v10H7z',
 } as const
 
 export type NombreIcono = keyof typeof TRAZOS

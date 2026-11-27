@@ -8,7 +8,7 @@ import { escenaPorDefecto } from '../../compartido/categorias.ts'
 import { blobADataUrl, prepararFoto } from '../../navegador/medios.ts'
 import type { DatosEvento, EstadoEntidad, EstadoEvento } from '../../compartido/tipos.ts'
 import {
-  aFotoDemo, CUENTAS_DEMO, cancelarInscripcionDemo, conDistancia, guardarAlmacen, leerAlmacen, listaInscripcionesDemo, type AlmacenDemo, type EntidadDemo, type EventoDemo, type UsuarioDemo,
+  aFotoDemo, CUENTAS_DEMO, cancelarInscripcionDemo, guardarHistoriaDemo, type HistoriaDemo, conDistancia, guardarAlmacen, leerAlmacen, listaInscripcionesDemo, type AlmacenDemo, type EntidadDemo, type EventoDemo, type UsuarioDemo,
 } from '../../demo/almacen.ts'
 
 class FalloDemo extends Error {
@@ -347,6 +347,7 @@ const pendientes = (a: AlmacenDemo) => ({
   entidades: a.entidades.filter((e) => e.estado === 'pendiente').map((e) => aEntidad(a, e)),
   eventos: a.eventos.filter((e) => e.estado === 'pendiente').map((e) => aGestion(a, e)),
   cambios: a.eventos.filter((e) => e.estado === 'publicado' && e.cambios).map((e) => aGestion(a, e)),
+  historias: a.historias.filter((h) => h.estado === 'pendiente').map((h) => aHistoriaGestionDemo(a, h)),
   fotos: [...new Set(a.fotos.filter((f) => f.estado === 'pendiente').map((f) => f.eventoId))].map((eventoId) => {
     const ev = a.eventos.find((e) => e.id === eventoId)!
     return {
@@ -364,7 +365,7 @@ ruta('GET', '/direccion/pendientes', (a) => {
 ruta('GET', '/direccion/resumen', (a) => {
   direccion(a)
   const p = pendientes(a)
-  return { pendientes: p.entidades.length + p.eventos.length + p.cambios.length + p.fotos.length }
+  return { pendientes: p.entidades.length + p.eventos.length + p.cambios.length + p.fotos.length + p.historias.length }
 })
 
 ruta('GET', '/direccion/eventos', (a, _, __, q) => {
@@ -499,6 +500,115 @@ ruta('GET', '/direccion/eventos/(\\d+)/inscripciones', (a, [id]) => {
   return listaInscripcionesDemo(a, evento(a, Number(id)).id)
 })
 
+// ——— Historias y lugares ———
+
+function aHistoriaGestionDemo(a: AlmacenDemo, h: HistoriaDemo) {
+  return {
+    ...h, lugarNombre: a.lugares.find((l) => l.id === h.lugarId)?.nombre ?? null,
+    archivos: h.archivos.map((x) => ({ ...x, url: a.imagenes[x.clave] ?? '' })),
+  }
+}
+
+const historia = (a: AlmacenDemo, id: number) => {
+  const h = a.historias.find((x) => x.id === id)
+  if (!h) throw fallo(404, 'Esa historia no existe.')
+  return h
+}
+
+ruta('GET', '/direccion/historias', (a, _, __, q) => {
+  direccion(a)
+  const estado = q.get('estado')
+  return a.historias.filter((h) => !estado || h.estado === estado).map((h) => aHistoriaGestionDemo(a, h))
+})
+
+ruta('GET', '/direccion/historias/(\\d+)', (a, [id]) => {
+  direccion(a)
+  return aHistoriaGestionDemo(a, historia(a, Number(id)))
+})
+
+ruta('PUT', '/direccion/historias/(\\d+)', (a, [id], c) => {
+  const u = direccion(a)
+  const h = historia(a, Number(id))
+  if (String(c.titulo ?? '').trim().length < 3) throw fallo(400, 'Ponle un título.')
+  Object.assign(h, {
+    titulo: String(c.titulo).trim(), texto: String(c.texto ?? ''), epoca: String(c.epoca ?? ''), lugarId: (c.lugarId as number | null) ?? null,
+    lugarTexto: String(c.lugarTexto ?? ''), firma: c.firma === 'nombre' ? 'nombre' : 'anonimo', autor: String(c.autor ?? ''), nota: String(c.nota ?? ''),
+    actualizado: ahora(),
+  })
+  for (const x of (c.archivos as { id: number; publicar: boolean; pie: string; orden: number }[]) ?? []) {
+    const ar = h.archivos.find((y) => y.id === x.id)
+    if (ar) Object.assign(ar, { publicar: x.publicar, pie: x.pie, orden: x.orden })
+  }
+  apuntar(a, u.id, 'historia_editada', `historia:${h.id}`, h.titulo)
+  return { ok: true }
+})
+
+const estadoHistoria = (desde: HistoriaDemo['estado'][], hasta: HistoriaDemo['estado'], accion: string, conMotivo = false): Manejador => (a, [id], c) => {
+  const u = direccion(a)
+  const h = historia(a, Number(id))
+  if (!desde.includes(h.estado)) throw fallo(409, 'La historia no está en un estado que permita esto.')
+  if (conMotivo && String(c.motivo ?? '').trim().length < 5) throw fallo(400, 'Motivo: escribe al menos 5 caracteres.')
+  h.estado = hasta
+  h.motivo = conMotivo ? String(c.motivo).trim() : null
+  h.actualizado = ahora()
+  apuntar(a, u.id, accion, `historia:${h.id}`, h.motivo ?? h.titulo)
+  return { ok: true, avisado: hasta === 'publicada' && h.contactoEmail && h.origen === 'web' ? h.contactoNombre || h.contactoEmail : undefined }
+}
+
+ruta('POST', '/direccion/historias/(\\d+)/publicar', estadoHistoria(['pendiente', 'retirada', 'rechazada'], 'publicada', 'historia_publicada'))
+ruta('POST', '/direccion/historias/(\\d+)/rechazar', estadoHistoria(['pendiente'], 'rechazada', 'historia_rechazada', true))
+ruta('POST', '/direccion/historias/(\\d+)/retirar', estadoHistoria(['publicada'], 'retirada', 'historia_retirada', true))
+
+ruta('DELETE', '/direccion/historias/(\\d+)', (a, [id]) => {
+  const u = direccion(a)
+  const h = historia(a, Number(id))
+  if (h.estado === 'publicada') throw fallo(409, 'Primero retírala de la app.')
+  h.archivos.forEach((x) => delete a.imagenes[x.clave])
+  a.historias = a.historias.filter((x) => x.id !== h.id)
+  apuntar(a, u.id, 'historia_borrada', `historia:${h.id}`, h.titulo)
+  return { ok: true }
+})
+
+const urlApp = () => import.meta.env.VITE_URL_APP ?? new URL('../', location.href).href
+
+ruta('GET', '/direccion/lugares', (a) => {
+  direccion(a)
+  return a.lugares.map((l) => ({
+    ...l, urlQr: `${urlApp()}#/lugar/${l.slug}?qr=1`,
+    historias: a.historias.filter((h) => h.estado === 'publicada' && h.lugarId === l.id).length,
+    pendientes: a.historias.filter((h) => h.estado === 'pendiente' && h.lugarId === l.id).length,
+  }))
+})
+
+const datosLugar = (c: Record<string, unknown>) => {
+  const nombre = String(c.nombre ?? '').trim()
+  if (nombre.length < 2) throw fallo(400, 'Escribe el nombre del lugar.')
+  return {
+    nombre, descripcion: String(c.descripcion ?? ''), direccion: String(c.direccion ?? ''), lat: Number(c.lat), lng: Number(c.lng),
+    anfitrion: String(c.anfitrion ?? ''), activo: Boolean(c.activo),
+  }
+}
+
+ruta('POST', '/direccion/lugares', (a, _, c) => {
+  const u = direccion(a)
+  const d = datosLugar(c)
+  const base = d.nombre.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'lugar'
+  let slug = base
+  for (let i = 2; a.lugares.some((l) => l.slug === slug); i++) slug = `${base}-${i}`
+  a.lugares.push({ ...d, id: a.siguienteId++, slug, escaneosTotal: 0, escaneos30: 0 })
+  apuntar(a, u.id, 'lugar_creado', `lugar:${slug}`, d.nombre)
+  return { slug }
+})
+
+ruta('PUT', '/direccion/lugares/(\\d+)', (a, [id], c) => {
+  const u = direccion(a)
+  const l = a.lugares.find((x) => x.id === Number(id))
+  if (!l) throw fallo(404, 'Ese lugar no existe.')
+  Object.assign(l, datosLugar(c))
+  apuntar(a, u.id, 'lugar_cambiado', `lugar:${l.id}`, l.nombre)
+  return { ok: true }
+})
+
 ruta('GET', '/direccion/entidades', (a) => {
   direccion(a)
   return [...a.entidades].sort((x, y) => Number(y.interna) - Number(x.interna) || x.nombre.localeCompare(y.nombre)).map((e) => aEntidad(a, e))
@@ -616,4 +726,22 @@ export async function subirImagenDemo(imagen: Blob) {
   a.imagenes[clave] = url
   guardarAlmacen(a)
   return { clave, url }
+}
+
+/** Fotos y audio en la demo: las fotos se reducen; el audio solo se guarda si es corto (cabe en el navegador). */
+export async function aDataUrlDemo(b: Blob, foto: boolean) {
+  if (foto) return blobADataUrl(await prepararFoto(new File([b], 'foto.jpg', { type: b.type || 'image/jpeg' }), 900, 0.8))
+  return b.size <= 1_500_000 ? blobADataUrl(b) : null
+}
+
+/** Formularios con archivos en la demo (modo entrevista). */
+export async function formularioDemo(ruta: string, datos: FormData) {
+  if (ruta !== '/direccion/historias') throw new FalloDemo(404, 'No existe.')
+  const a = leerAlmacen()
+  if (!a.sesion?.segundoFactor || a.usuarios.find((u) => u.id === a.sesion!.usuarioId)?.rol !== 'direccion') throw new FalloDemo(401, 'Tienes que entrar con tu cuenta.')
+  try {
+    return { id: await guardarHistoriaDemo(datos, 'entrevista', aDataUrlDemo) }
+  } catch (e) {
+    throw new FalloDemo(400, (e as Error).message)
+  }
 }

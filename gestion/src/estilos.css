@@ -391,3 +391,56 @@ details summary { cursor: pointer; color: var(--primario); font-weight: 650; }
 .g-decision button { width: 38px; height: 38px; border-radius: 50%; border: 0; display: grid; place-items: center; background: rgb(255 255 255 / .92); color: var(--suave); box-shadow: 0 1px 4px rgb(0 0 0 / .2); }
 .g-decision button.si.activo { background: var(--verde); color: #fff; }
 .g-decision button.no.activo { background: var(--rojo); color: #fff; }
+
+/* ——— Historias y lugares ——— */
+.g-pestanas { display: flex; gap: 4px; border-bottom: 1px solid var(--borde); }
+.g-pestanas a { display: inline-flex; align-items: center; gap: 7px; padding: 10px 14px; color: var(--suave); text-decoration: none; font-weight: 650; font-size: 14.5px; border-bottom: 3px solid transparent; margin-bottom: -1px; }
+.g-pestanas a.active { color: var(--primario-oscuro); border-color: var(--primario); }
+.g-taco-libro { color: var(--cuero); background: var(--cuero-claro); }
+.g-adjuntos { display: flex; gap: 10px; flex-wrap: wrap; }
+.g-adjuntos span { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: var(--cuero-oscuro); }
+.g-enlace-fila { text-decoration: none; color: inherit; }
+.g-dos-columnas { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 18px; align-items: start; }
+.g-columna { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.g-columna-lateral { position: sticky; top: 84px; }
+@media (max-width: 900px) { .g-dos-columnas { grid-template-columns: 1fr; } .g-columna-lateral { position: static; } }
+.g-mini-ficha { display: grid; grid-template-columns: 80px 1fr; gap: 6px 10px; margin: 0; font-size: 14.5px; }
+.g-mini-ficha dt { color: var(--suave); font-weight: 600; font-size: 13px; }
+.g-mini-ficha dd { margin: 0; overflow-wrap: anywhere; }
+.g-permisos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: 13.5px; }
+.g-permisos li { display: flex; gap: 8px; align-items: flex-start; }
+.g-permisos li.si .g-icono { color: var(--verde); margin-top: 2px; }
+.g-permisos li.no { color: var(--rojo); }
+.g-archivos { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.g-archivo { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px solid var(--borde); border-radius: 14px; background: var(--fondo); }
+.g-archivo img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 10px; display: block; }
+.g-archivo audio { width: 100%; }
+.g-archivo.apagado img, .g-archivo.apagado audio { opacity: .45; }
+.g-pie-foto { font: inherit; font-size: 14px; height: 40px; padding: 0 10px; border: 1.5px solid var(--borde); border-radius: 10px; }
+.g-grabador { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.g-grabador audio { width: 100%; max-width: 420px; }
+.g-grabando { display: flex; align-items: center; gap: 14px; padding: 10px 14px; border-radius: 14px; background: var(--rojo-claro); }
+.g-piloto { width: 14px; height: 14px; border-radius: 50%; background: var(--rojo); animation: g-latido 1s infinite; }
+@keyframes g-latido { 50% { opacity: .3; } }
+
+/* Placa para imprimir (A5 vertical) */
+.g-placa {
+  position: relative; width: 148mm; max-width: 100%; aspect-ratio: 148 / 210; margin: 0 auto; background: #fff; border-radius: 18px; border: 1px solid var(--borde);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6mm; padding: 12mm; text-align: center;
+  box-shadow: 0 10px 30px rgb(23 33 29 / .1); background-image: linear-gradient(180deg, var(--primario) 0 14mm, #fff 14mm);
+}
+.g-placa-ante { position: absolute; top: 4mm; left: 0; right: 0; color: #fff; font-size: 11pt; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.g-placa-nombre { font: 700 24pt/1.15 var(--titulos); color: var(--tinta); }
+.g-aviso-bloque { display: block; }
+.g-placa-qr { padding: 4mm; border: 2px solid var(--primario); border-radius: 12px; }
+.g-placa-qr .g-qr { border: 0; display: block; }
+.g-placa-invita { font-size: 13pt; line-height: 1.4; color: var(--tinta); }
+.g-placa-marca { font: 700 15pt var(--titulos); }
+.g-placa-marca em { font-style: normal; color: var(--primario); padding-bottom: 5px; background: var(--ola) left bottom / 24px 8px repeat-x; }
+@media print {
+  @page { size: A5 portrait; margin: 0; }
+  body { background: #fff; }
+  .g-cabecera-app, .g-nav-abajo, .g-no-imprimir, .g-franja-demo, .g-toast { display: none !important; }
+  .g-principal { padding: 0; max-width: none; }
+  .g-placa { width: 148mm; height: 210mm; border: 0; border-radius: 0; box-shadow: none; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

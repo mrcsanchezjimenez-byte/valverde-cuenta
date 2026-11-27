@@ -11,6 +11,7 @@ import {
   Actividad, Entidades, Eventos, FichaEntidad, Municipios, NuevoEventoDireccion, Pendientes, RevisarEvento,
 } from './pantallas/Direccion.tsx'
 import { AvisosEntidad, EventoEntidad, MisEventos } from './pantallas/Entidad.tsx'
+import { EditarLugar, ListaHistorias, Lugares, NuevaHistoria, Placa, RevisarHistoria } from './pantallas/Historias.tsx'
 import { ProveedorSesion, useSesion } from './sesion.tsx'
 
 /** Rutas a las que se llega desde un correo: valen con o sin sesión. */
@@ -26,6 +27,8 @@ interface Enlace {
   texto: string
   icono: NombreIcono
   globo?: number
+  /** En el móvil no cabe en la barra: va dentro de «Más». */
+  secundario?: boolean
 }
 
 const iniciales = (nombre: string) => nombre.split(/\s+/).slice(0, 2).map((p) => p[0]).join('').toUpperCase()
@@ -36,12 +39,17 @@ const iniciales = (nombre: string) => nombre.split(/\s+/).slice(0, 2).map((p) =>
  */
 function Armazon({ enlaces, children }: { enlaces: Enlace[]; children: ReactNode }) {
   const { usuario } = useSesion()
-  const secciones = enlaces.map((e) => (
+  const enlace = (e: Enlace) => (
     <NavLink key={e.a} to={e.a} end={e.a === '/'}>
       <span className="g-nav-icono"><Icono n={e.icono} />{e.globo ? <span className="g-globo">{e.globo}</span> : null}</span>
       <span>{e.texto}</span>
     </NavLink>
-  ))
+  )
+  const secciones = enlaces.map(enlace)
+  const hayMas = enlaces.some((e) => e.secundario)
+  const abajo = hayMas
+    ? [...enlaces.filter((e) => !e.secundario).map(enlace), enlace({ a: '/mas', texto: 'Más', icono: 'mas2' })]
+    : secciones
   return (
     <div className="g-armazon">
       <header className="g-cabecera-app">
@@ -55,7 +63,7 @@ function Armazon({ enlaces, children }: { enlaces: Enlace[]; children: ReactNode
         </div>
       </header>
       <main className="g-principal">{children}</main>
-      <nav className="g-nav g-nav-abajo" aria-label="Secciones">{secciones}</nav>
+      <nav className="g-nav g-nav-abajo" aria-label="Secciones">{abajo}</nav>
     </div>
   )
 }
@@ -72,9 +80,10 @@ function PanelDireccion() {
     <Armazon enlaces={[
       { a: '/pendientes', texto: 'Pendientes', icono: 'bandeja', globo: resumen.datos?.pendientes },
       { a: '/eventos', texto: 'Eventos', icono: 'calendario' },
+      { a: '/historias', texto: 'Historias', icono: 'libro' },
       { a: '/entidades', texto: 'Entidades', icono: 'personas' },
-      { a: '/zona', texto: 'Zona', icono: 'mapa' },
-      { a: '/actividad', texto: 'Actividad', icono: 'actividad' },
+      { a: '/zona', texto: 'Zona', icono: 'mapa', secundario: true },
+      { a: '/actividad', texto: 'Actividad', icono: 'actividad', secundario: true },
     ]}>
       <Routes>
         <Route path="/pendientes" element={<Pendientes />} />
@@ -85,6 +94,13 @@ function PanelDireccion() {
         <Route path="/entidades/:id" element={<FichaEntidad />} />
         <Route path="/zona" element={<Municipios />} />
         <Route path="/actividad" element={<Actividad />} />
+        <Route path="/historias" element={<ListaHistorias />} />
+        <Route path="/historias/nueva" element={<NuevaHistoria />} />
+        <Route path="/historias/:id" element={<RevisarHistoria />} />
+        <Route path="/lugares" element={<Lugares />} />
+        <Route path="/lugares/:id" element={<EditarLugar />} />
+        <Route path="/lugares/:id/placa" element={<Placa />} />
+        <Route path="/mas" element={<Mas />} />
         <Route path="/cuenta" element={<MiCuenta />} />
         {RUTAS_CORREO}
         <Route path="*" element={<Navigate to="/pendientes" replace />} />
@@ -116,6 +132,31 @@ function PanelEntidad() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Armazon>
+  )
+}
+
+const MAS = [
+  ['/zona', 'Zona de la agenda', 'mapa', 'Qué pueblos entran'],
+  ['/actividad', 'Actividad', 'actividad', 'Quién ha hecho qué y cuándo'],
+  ['/lugares', 'Lugares y placas QR', 'qr', 'Placas para imprimir y escaneos'],
+  ['/cuenta', 'Mi cuenta', 'personas', 'Contraseña y salir'],
+] as const
+
+/** En el móvil: lo que no cabe en la barra de abajo. */
+function Mas() {
+  return (
+    <section className="g-pagina">
+      <header className="g-cabecera"><div><p className="g-antetitulo">Dirección</p><h1>Más</h1></div></header>
+      <div className="g-lista">
+        {MAS.map(([a, t, i, s]) => (
+          <Link key={a} to={a} className="g-fila">
+            <span className="g-icono-redondo"><Icono n={i} /></span>
+            <span className="g-fila-cuerpo"><b>{t}</b><small>{s}</small></span>
+            <span className="g-fila-final"><Icono n="adelante" tam={18} /></span>
+          </Link>
+        ))}
+      </div>
+    </section>
   )
 }
 

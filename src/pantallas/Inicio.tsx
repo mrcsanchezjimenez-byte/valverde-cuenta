@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AvisoEjemplo } from '../componentes/Avisos'
 import { HojaCompartir } from '../componentes/HojaCompartir'
@@ -6,7 +6,9 @@ import { Icono } from '../componentes/Iconos'
 import { TarjetaGrande } from '../componentes/TarjetasEvento'
 import { CATEGORIAS } from '../../compartido/categorias.ts'
 import { esProximosDias, fecha } from '../datos/fechas'
-import { MODO_DEMO, URL_GESTION, useAgenda } from '../datos/repositorio'
+import type { Historia } from '../../compartido/tipos.ts'
+import { cargarHistorias, MODO_DEMO, URL_GESTION, useAgenda } from '../datos/repositorio'
+import { BotonContar, TarjetaHistoria } from './Historias'
 import { PARADAS, RUTA_MINUTOS } from '../datos/yincana'
 import { useCompletadas } from '../estado/almacen'
 
@@ -36,6 +38,10 @@ export function BannerYincana() {
 export function Inicio() {
   const [compartiendo, setCompartiendo] = useState(false)
   const { proximos, todos, estado } = useAgenda()
+  const [historias, setHistorias] = useState<Historia[]>([])
+  useEffect(() => {
+    cargarHistorias().then(setHistorias).catch(() => undefined)
+  }, [])
   const ahora = new Date()
   const conFotos = todos.filter((e) => e.fotos?.length && fecha(e.fin) < ahora).reverse().slice(0, 6)
   const semana = proximos.filter((e) => esProximosDias(e, 7))
@@ -101,15 +107,10 @@ export function Inicio() {
 
       <div className="titulo-seccion">
         <h2>Historias de Valverde</h2>
+        <Link to="/historias">Ver todas <Icono n="adelante" tam={14} /></Link>
       </div>
-      <Link to="/historias" className="fila-proximamente">
-        <span className="circulo-icono"><Icono n="historias" tam={22} /></span>
-        <span>
-          <b>Radio 27 y Fotos de antes</b>
-          <small>Voces y fotos de vecinos. Próximamente.</small>
-        </span>
-        <Icono n="adelante" tam={18} />
-      </Link>
+      {historias.slice(0, 2).map((h) => <TarjetaHistoria key={h.slug} h={h} />)}
+      <BotonContar />
 
       {compartiendo && <HojaCompartir alCerrar={() => setCompartiendo(false)} />}
     </div>

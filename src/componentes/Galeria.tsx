@@ -45,11 +45,11 @@ function Visor({ fotos, inicial, alCerrar }: { fotos: Foto[]; inicial: number; a
 }
 
 /** Fotos de cómo fue un evento, en cuadrícula. */
-export function Galeria({ fotos }: { fotos: Foto[] }) {
+export function Galeria({ fotos, titulo = 'Cómo fue' }: { fotos: Foto[]; titulo?: string }) {
   const [abierta, setAbierta] = useState<number | null>(null)
   return (
     <section className="galeria">
-      <h2 className="titulo-galeria"><Icono n="historias" tam={18} /> Cómo fue <small>{fotos.length === 1 ? '1 foto' : `${fotos.length} fotos`}</small></h2>
+      <h2 className="titulo-galeria"><Icono n="historias" tam={18} /> {titulo} <small>{fotos.length === 1 ? '1 foto' : `${fotos.length} fotos`}</small></h2>
       <div className="galeria-rejilla">
         {fotos.slice(0, 9).map((f, n) => (
           <button key={f.url} onClick={() => setAbierta(n)} aria-label={`Ver foto ${n + 1}`}>

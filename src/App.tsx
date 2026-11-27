@@ -4,7 +4,8 @@ import { Icono, type NombreIcono } from './componentes/Iconos'
 import { Agenda } from './pantallas/Agenda'
 import { FichaEvento } from './pantallas/FichaEvento'
 import { FinYincana } from './pantallas/FinYincana'
-import { Historias } from './pantallas/Historias'
+import { Contar } from './pantallas/Contar'
+import { FichaHistoria, Historias, LugarHistorias } from './pantallas/Historias'
 import { Inicio } from './pantallas/Inicio'
 import { Mapa } from './pantallas/Mapa'
 import { ParadaYincana } from './pantallas/ParadaYincana'
@@ -29,6 +30,9 @@ function Contenido() {
         <Route path="/evento/:id" element={<FichaEvento />} />
         <Route path="/mapa" element={<Mapa />} />
         <Route path="/historias" element={<Historias />} />
+        <Route path="/historia/:slug" element={<FichaHistoria />} />
+        <Route path="/lugar/:slug" element={<LugarHistorias />} />
+        <Route path="/contar" element={<Contar />} />
         <Route path="/yincana" element={<Yincana />} />
         <Route path="/yincana/fin" element={<FinYincana />} />
         <Route path="/yincana/:numero" element={<ParadaYincana />} />

@@ -9,9 +9,9 @@
  * Solo se usa con VITE_DEMO=1. La versión real nunca carga este archivo.
  */
 import { escenaPorDefecto } from '../compartido/categorias.ts'
-import { EVENTOS } from '../compartido/ejemplo.ts'
-import type { AvisoEntidad, DatosEvento, EstadoEntidad, EstadoFoto, EstadoInscripcion, Evento, EventoGestion, Inscripcion, MiInscripcion, Municipio, Rol } from '../compartido/tipos.ts'
-import { CENTRO_VALVERDE, distanciaKm } from '../compartido/tipos.ts'
+import { EVENTOS, HISTORIAS_EJEMPLO, LUGARES_EJEMPLO } from '../compartido/ejemplo.ts'
+import type { AvisoEntidad, Consentimiento, DatosEvento, EstadoEntidad, EstadoFoto, EstadoHistoria, EstadoInscripcion, Historia, Lugar, Evento, EventoGestion, Inscripcion, MiInscripcion, Municipio, Rol } from '../compartido/tipos.ts'
+import { CENTRO_VALVERDE, distanciaKm, firmaPublica } from '../compartido/tipos.ts'
 
 export interface UsuarioDemo {
   id: number
@@ -54,6 +54,18 @@ export interface ApunteDemo {
 }
 
 export type InscripcionDemo = Inscripcion & { eventoId: number; codigo: string }
+export interface LugarDemo {
+  id: number; slug: string; nombre: string; descripcion: string; direccion: string; lat: number; lng: number
+  anfitrion: string; activo: boolean; escaneosTotal: number; escaneos30: number
+}
+export interface ArchivoDemo { id: number; clave: string; tipo: 'foto' | 'audio'; mime: string; bytes: number; publicar: boolean; pie: string; orden: number }
+export interface HistoriaDemo {
+  id: number; slug: string; estado: EstadoHistoria; origen: 'web' | 'entrevista'; titulo: string; texto: string; epoca: string
+  lugarId: number | null; lugarTexto: string; firma: 'nombre' | 'anonimo'; autor: string
+  contactoNombre: string; contactoEmail: string; contactoTelefono: string
+  consentimiento: { version: string; aceptados: Consentimiento[]; fecha: string }
+  motivo: string | null; nota: string; archivos: ArchivoDemo[]; creado: string; actualizado: string
+}
 export interface FotoDemo { id: number; eventoId: number; imagen: string; pie: string; estado: EstadoFoto; creado: string }
 
 /** «Fotos» de ejemplo dibujadas en SVG, para no meter imágenes reales en la demo. */
@@ -80,6 +92,8 @@ export interface AlmacenDemo {
   imagenes: Record<string, string>
   inscripciones: InscripcionDemo[]
   fotos: FotoDemo[]
+  lugares: LugarDemo[]
+  historias: HistoriaDemo[]
   sesion: { usuarioId: number; segundoFactor: boolean } | null
   siguienteId: number
 }
@@ -91,7 +105,7 @@ export const CUENTAS_DEMO = {
 }
 
 const CLAVE = 'vc.demo'
-const VERSION = 4
+const VERSION = 5
 const ahora = () => new Date().toISOString().replace(/\.\d+Z$/, 'Z')
 
 /** Fecha local (AAAA-MM-DDTHH:mm) dentro de `dias` días, a la hora indicada. */
@@ -202,6 +216,25 @@ function sembrar(): AlmacenDemo {
     ...[1, 2, 3, 4].map((n) => ({ id: 600 + n, eventoId: castanada.id, imagen: `demofoto00000000000000${n}`, pie: '', estado: 'publicada' as const, creado: t })),
     ...[5, 6].map((n) => ({ id: 600 + n, eventoId: conCambios.id, imagen: `demofoto00000000000000${n}`, pie: '', estado: 'pendiente' as const, creado: t })),
   ]
+  // Lugares con placa (las paradas de la yincana) e historias de ejemplo; una de ellas, pendiente.
+  const lugares: LugarDemo[] = LUGARES_EJEMPLO.map((l, i) => ({ ...l, id: 700 + i, activo: true, escaneosTotal: [42, 31, 18, 9, 27][i], escaneos30: [12, 8, 5, 2, 7][i] }))
+  const todos: Consentimiento[] = ['cesion', 'autoria', 'personas', 'edad']
+  const historias: HistoriaDemo[] = HISTORIAS_EJEMPLO.map((h, i) => ({
+    id: 800 + i, slug: `historia-${i + 1}`, estado: 'publicada', origen: 'entrevista', titulo: h.titulo, texto: h.texto, epoca: h.epoca,
+    lugarId: lugares.find((l) => l.slug === h.lugar)!.id, lugarTexto: '', firma: h.autor ? 'nombre' : 'anonimo', autor: h.autor,
+    contactoNombre: '', contactoEmail: '', contactoTelefono: '', consentimiento: { version: '2026-11-27', aceptados: todos, fecha: t },
+    motivo: null, nota: '', archivos: [], creado: t, actualizado: t,
+  }))
+  imagenes.demofoto000000000000007 = fotoDibujada('%23F5E8BE', '%238F7354', 3, 'Foto antigua de la fragua')
+  historias.push({
+    id: 899, slug: 'historia-pendiente', estado: 'pendiente', origen: 'web', titulo: 'La fragua de la calle Real',
+    texto: 'Mi abuelo era herrero y tenía la fragua al final de la calle Real. Los arrieros paraban allí a herrar las mulas antes de bajar a Huelva, y de paso se tomaban un vaso de vino en la taberna de enfrente.\n\nDe chico me dejaba darle al fuelle, y aún me acuerdo del ruido del martillo sobre el yunque.',
+    epoca: '1936–1960', lugarId: null, lugarTexto: 'Calle Real', firma: 'nombre', autor: 'Manolo, el nieto del herrero',
+    contactoNombre: 'Manuel Ruiz (ejemplo)', contactoEmail: 'manuel@ejemplo.es', contactoTelefono: '',
+    consentimiento: { version: '2026-11-27', aceptados: todos, fecha: t }, motivo: null, nota: '',
+    archivos: [{ id: 901, clave: 'demofoto000000000000007', tipo: 'foto', mime: 'image/svg+xml', bytes: 0, publicar: true, pie: '', orden: 0 }],
+    creado: t, actualizado: t,
+  })
   const inscripciones: InscripcionDemo[] = [
     ['María Romero', '600100200', '', 2], ['José Manuel Vázquez', '', 'jmv@ejemplo.es', 1], ['Lucía Garrido', '600300400', '', 3],
     ['Francisco Díaz', '600500600', 'paco@ejemplo.es', 1], ['Inés Bravo', '600700800', '', 2],
@@ -212,6 +245,7 @@ function sembrar(): AlmacenDemo {
 
   return {
     version: VERSION, usuarios, entidades, eventos, municipios: MUNICIPIOS, sesion: null, siguienteId: 1000, imagenes, inscripciones, fotos,
+    lugares, historias,
     avisos: [{
       id: 1, entidadId: 2, tipo: 'bien', titulo: 'Entidad verificada', leido: false, eventoId: null, creado: t,
       texto: '«Peña Cultural El Boto» ya puede publicar en la agenda. Cada evento lo revisaremos antes de que salga.',
@@ -361,3 +395,82 @@ export const fotosPublicadas = (a: AlmacenDemo, eventoId: number) =>
 
 export const aFotoDemo = (a: AlmacenDemo, f: FotoDemo) =>
   ({ id: f.id, eventoId: f.eventoId, url: a.imagenes[f.imagen] ?? '', pie: f.pie, estado: f.estado, creado: f.creado })
+
+// ——— Historias y lugares en la demo ———
+
+const urlArchivoDemo = (a: AlmacenDemo, clave: string) => a.imagenes[clave] ?? ''
+
+export function aHistoriaPublicaDemo(a: AlmacenDemo, h: HistoriaDemo): Historia {
+  const l = a.lugares.find((x) => x.id === h.lugarId)
+  return {
+    slug: h.slug, titulo: h.titulo, texto: h.texto, epoca: h.epoca, autor: firmaPublica(h.firma, h.autor),
+    lugar: l ? { slug: l.slug, nombre: l.nombre } : null, lugarTexto: h.lugarTexto, fecha: h.actualizado,
+    archivos: h.archivos.filter((x) => x.publicar).map((x) => ({ clave: x.clave, tipo: x.tipo, url: urlArchivoDemo(a, x.clave), pie: x.pie })),
+  }
+}
+
+export function historiasPublicasDemo(): Historia[] {
+  const a = leerAlmacen()
+  return a.historias.filter((h) => h.estado === 'publicada').map((h) => aHistoriaPublicaDemo(a, h))
+}
+
+const aLugarDemo = (a: AlmacenDemo, l: LugarDemo): Lugar => ({
+  slug: l.slug, nombre: l.nombre, descripcion: l.descripcion, direccion: l.direccion, lat: l.lat, lng: l.lng,
+  historias: a.historias.filter((h) => h.estado === 'publicada' && h.lugarId === l.id).length,
+})
+
+export function lugaresPublicosDemo(): Lugar[] {
+  const a = leerAlmacen()
+  return a.lugares.filter((l) => l.activo).map((l) => aLugarDemo(a, l))
+}
+
+export function lugarPublicoDemo(slug: string, qr: boolean) {
+  const a = leerAlmacen()
+  const l = a.lugares.find((x) => x.slug === slug && x.activo)
+  if (!l) throw new ErrorDemo('Ese lugar no existe.')
+  if (qr) {
+    l.escaneosTotal++
+    l.escaneos30++
+    guardarAlmacen(a)
+  }
+  return { ...aLugarDemo(a, l), historias: a.historias.filter((h) => h.estado === 'publicada' && h.lugarId === l.id).map((h) => aHistoriaPublicaDemo(a, h)) }
+}
+
+/** Guarda una historia que llega en un formulario (desde la app o en modo entrevista). */
+export async function guardarHistoriaDemo(datos: FormData, origen: 'web' | 'entrevista', aDataUrl: (b: Blob, foto: boolean) => Promise<string | null>) {
+  const a = leerAlmacen()
+  const v = (k: string) => String(datos.get(k) ?? '').trim()
+  const aceptados = (['cesion', 'autoria', 'personas', 'edad'] as Consentimiento[]).filter((k) => v(`acepta_${k}`) === 'si')
+  if (aceptados.length < 4) throw new ErrorDemo('Para poder publicarla hay que marcar todas las casillas de permisos.')
+  if (v('titulo').length < 3) throw new ErrorDemo('Ponle un título (al menos 3 letras).')
+  const audio = datos.get('audio')
+  if (v('texto').length < 30 && !(audio instanceof Blob)) throw new ErrorDemo('Cuenta la historia por escrito (al menos unas líneas) o grábala en audio.')
+  if (v('firma') === 'nombre' && v('autor').length < 2) throw new ErrorDemo('Escribe con qué nombre quieres firmar, o elige firmar como «un vecino o vecina».')
+  const archivos: ArchivoDemo[] = []
+  for (const f of datos.getAll('fotos')) {
+    if (!(f instanceof Blob)) continue
+    const url = await aDataUrl(f, true)
+    if (!url) continue
+    const clave = `demo${a.siguienteId++}`
+    a.imagenes[clave] = url
+    archivos.push({ id: a.siguienteId++, clave, tipo: 'foto', mime: 'image/jpeg', bytes: f.size, publicar: true, pie: '', orden: archivos.length })
+  }
+  if (audio instanceof Blob) {
+    const url = await aDataUrl(audio, false)
+    if (url) {
+      const clave = `demo${a.siguienteId++}`
+      a.imagenes[clave] = url
+      archivos.push({ id: a.siguienteId++, clave, tipo: 'audio', mime: audio.type, bytes: audio.size, publicar: true, pie: '', orden: archivos.length })
+    }
+  }
+  const t = new Date().toISOString()
+  const id = a.siguienteId++
+  a.historias.unshift({
+    id, slug: `historia-${id}`, estado: 'pendiente', origen, titulo: v('titulo'), texto: v('texto'), epoca: v('epoca'),
+    lugarId: v('lugarSlug') ? a.lugares.find((l) => l.slug === v('lugarSlug'))?.id ?? null : v('lugarId') ? Number(v('lugarId')) : null, lugarTexto: v('lugarTexto'), firma: v('firma') === 'nombre' ? 'nombre' : 'anonimo', autor: v('autor'),
+    contactoNombre: v('contactoNombre'), contactoEmail: v('contactoEmail'), contactoTelefono: v('contactoTelefono'),
+    consentimiento: { version: '2026-11-27', aceptados, fecha: t }, motivo: null, nota: '', archivos, creado: t, actualizado: t,
+  })
+  guardarAlmacen(a)
+  return id
+}

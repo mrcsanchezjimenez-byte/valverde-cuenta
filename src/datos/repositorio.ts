@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useSyncExternalStore } from 'react'
 import { escribir, leer } from '../nativo'
 import { fecha, noHaTerminado } from './fechas'
-import type { MiInscripcion } from '../../compartido/tipos.ts'
+import type { Historia, Lugar, MiInscripcion } from '../../compartido/tipos.ts'
 import type { Evento } from './tipos'
 
 /**
@@ -165,4 +165,50 @@ export async function cancelarMiInscripcion(codigo: string) {
   const r = await pedirJson<MiInscripcion>(`/inscripciones/${codigo}/cancelar`, {})
   void descargar()
   return r
+}
+
+// ——— Historias del pueblo y lugares con placa ———
+
+/** Las rutas de archivos vienen relativas al servidor: en la app nativa hay que ponerles su dirección. */
+const conServidor = <T extends { archivos: { url: string }[] }>(h: T): T =>
+  ({ ...h, archivos: h.archivos.map((a) => (a.url.startsWith('/') ? { ...a, url: `${API}${a.url}` } : a)) })
+
+export async function cargarHistorias(): Promise<Historia[]> {
+  if (MODO_DEMO) return (await import('../../demo/almacen.ts')).historiasPublicasDemo()
+  return (await pedirJson<Historia[]>('/historias')).map(conServidor)
+}
+
+export async function cargarLugares(): Promise<Lugar[]> {
+  if (MODO_DEMO) return (await import('../../demo/almacen.ts')).lugaresPublicosDemo()
+  return pedirJson<Lugar[]>('/lugares')
+}
+
+/** La página del QR. Con `qr`, cuenta un escaneo de la placa. */
+export async function cargarLugar(slug: string, qr: boolean): Promise<Omit<Lugar, 'historias'> & { historias: Historia[] }> {
+  if (MODO_DEMO) {
+    const r = (await import('../../demo/almacen.ts')).lugarPublicoDemo(slug, qr)
+    return r as Omit<Lugar, 'historias'> & { historias: Historia[] }
+  }
+  const r = await pedirJson<Omit<Lugar, 'historias'> & { historias: Historia[] }>(`/lugares/${slug}${qr ? '?qr=1' : ''}`)
+  return { ...r, historias: r.historias.map(conServidor) }
+}
+
+export async function enviarHistoria(datos: FormData) {
+  if (MODO_DEMO) {
+    const { guardarHistoriaDemo } = await import('../../demo/almacen.ts')
+    const { prepararFoto, blobADataUrl } = await import('../../navegador/medios.ts')
+    await guardarHistoriaDemo(datos, 'web', async (b, foto) =>
+      foto ? blobADataUrl(await prepararFoto(new File([b], 'f.jpg', { type: b.type || 'image/jpeg' }), 900, 0.8)) : b.size <= 1_500_000 ? blobADataUrl(b) : null)
+    return
+  }
+  let r: Response
+  try {
+    r = await fetch(`${API}/api/publico/historias`, { method: 'POST', credentials: 'omit', body: datos })
+  } catch {
+    throw new Error('No hay conexión. Tu historia no se ha enviado: inténtalo de nuevo cuando tengas cobertura.')
+  }
+  if (!r.ok) {
+    const e = await r.json().catch(() => null) as { error?: string } | null
+    throw new Error(e?.error ?? 'No se ha podido enviar. Inténtalo otra vez.')
+  }
 }

@@ -73,3 +73,20 @@ export async function subirImagen(imagen: Blob): Promise<{ clave: string; url: s
   if (!r.ok || !datos) throw new ErrorApi(r.status, datos?.error ?? 'No se ha podido subir la imagen.')
   return datos
 }
+
+/** Envía un formulario con archivos (historias con fotos y audio). */
+export async function enviarFormulario<T = unknown>(ruta: string, datos: FormData): Promise<T> {
+  if (MODO_DEMO) {
+    const { formularioDemo } = await import('./demo.ts')
+    return formularioDemo(ruta, datos) as Promise<T>
+  }
+  let r: Response
+  try {
+    r = await fetch(`/api${ruta}`, { method: 'POST', credentials: 'same-origin', headers: { 'X-VC': '1' }, body: datos })
+  } catch {
+    throw new ErrorApi(0, 'No hay conexión con el servidor. Comprueba tu conexión e inténtalo otra vez.')
+  }
+  const cuerpo = await r.json().catch(() => null) as (T & { error?: string }) | null
+  if (!r.ok || !cuerpo) throw new ErrorApi(r.status, cuerpo?.error ?? 'No se ha podido enviar.')
+  return cuerpo
+}
