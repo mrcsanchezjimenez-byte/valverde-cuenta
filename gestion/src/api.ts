@@ -54,3 +54,22 @@ export async function api<T = unknown>(metodo: 'GET' | 'POST' | 'PUT' | 'DELETE'
   }
   return datos as T
 }
+
+/** Sube una imagen (ya reducida en el navegador) y devuelve su clave y dirección para enseñarla. */
+export async function subirImagen(imagen: Blob): Promise<{ clave: string; url: string }> {
+  if (MODO_DEMO) {
+    const { subirImagenDemo } = await import('./demo.ts')
+    return subirImagenDemo(imagen)
+  }
+  const form = new FormData()
+  form.append('imagen', imagen, 'imagen.jpg')
+  let r: Response
+  try {
+    r = await fetch('/api/imagenes', { method: 'POST', credentials: 'same-origin', headers: { 'X-VC': '1' }, body: form })
+  } catch {
+    throw new ErrorApi(0, 'No hay conexión con el servidor. Comprueba tu conexión e inténtalo otra vez.')
+  }
+  const datos = await r.json().catch(() => null) as { clave: string; url: string; error?: string } | null
+  if (!r.ok || !datos) throw new ErrorApi(r.status, datos?.error ?? 'No se ha podido subir la imagen.')
+  return datos
+}

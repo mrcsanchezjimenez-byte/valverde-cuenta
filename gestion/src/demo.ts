@@ -5,6 +5,7 @@
  */
 import { LETRAS_GRATIS, motivoCifNoGratis, normalizarCif } from '../../compartido/cif.ts'
 import { escenaPorDefecto } from '../../compartido/categorias.ts'
+import { blobADataUrl, prepararFoto } from '../../navegador/medios.ts'
 import type { DatosEvento, EstadoEntidad, EstadoEvento } from '../../compartido/tipos.ts'
 import {
   CUENTAS_DEMO, conDistancia, guardarAlmacen, leerAlmacen, type AlmacenDemo, type EntidadDemo, type EventoDemo, type UsuarioDemo,
@@ -46,7 +47,17 @@ function usuarioPublico(a: AlmacenDemo, u: UsuarioDemo) {
 const falta = (u: UsuarioDemo, segundoFactor: boolean) =>
   segundoFactor ? null : u.totpActivo ? 'codigo' : u.rol === 'direccion' ? 'alta2fa' : null
 
-const aGestion = (a: AlmacenDemo, e: EventoDemo) => ({ ...e, entidadNombre: a.entidades.find((x) => x.id === e.entidadId)?.nombre ?? '' })
+const aGestion = (a: AlmacenDemo, e: EventoDemo) => ({
+  ...e, entidadNombre: a.entidades.find((x) => x.id === e.entidadId)?.nombre ?? '',
+  imagenUrl: e.imagen ? a.imagenes[e.imagen] ?? null : null,
+  cambiosImagenUrl: e.cambios?.imagen ? a.imagenes[e.cambios.imagen] ?? null : null,
+})
+
+/** Como en el servidor real: avisa a la entidad en su panel y devuelve su nombre. */
+function avisarEntidad(a: AlmacenDemo, entidadId: number, tipo: 'bien' | 'mal' | 'info', titulo: string, texto: string, eventoId: number | null = null) {
+  a.avisos.unshift({ id: a.siguienteId++, entidadId, tipo, titulo, texto, eventoId, leido: false, creado: ahora() })
+  return a.entidades.find((e) => e.id === entidadId)?.nombre ?? ''
+}
 
 function aEntidad(a: AlmacenDemo, e: EntidadDemo) {
   const u = a.usuarios.find((x) => x.entidadId === e.id)
@@ -73,13 +84,14 @@ function comprobarEvento(a: AlmacenDemo, d: DatosEvento, enviar: boolean) {
   if (!d.lugar || d.lugar.trim().length < 2) throw fallo(400, 'Lugar: escribe al menos 2 caracteres.')
   if (!a.municipios.find((m) => m.id === d.municipioId && m.activo)) throw fallo(400, 'Ese municipio no está en la zona de la agenda.')
   if (d.enlace && !/^https?:\/\//i.test(d.enlace)) throw fallo(400, 'El enlace debe empezar por https://')
+  if (d.imagen && !a.imagenes[d.imagen]) throw fallo(400, 'La imagen no es válida. Vuelve a subirla.')
   if (enviar && d.fin <= new Date().toISOString().slice(0, 16)) throw fallo(400, 'Ese evento ya ha terminado.')
 }
 
 const datos = (d: DatosEvento): DatosEvento => ({
   titulo: d.titulo.trim(), resumen: d.resumen.trim(), descripcion: d.descripcion.trim(), inicio: d.inicio, fin: d.fin,
   lugar: d.lugar.trim(), municipioId: d.municipioId, lat: d.lat, lng: d.lng, precio: d.precio || null,
-  publico: d.publico.trim(), categoria: d.categoria, paraNinos: d.paraNinos, enlace: d.enlace.trim(),
+  publico: d.publico.trim(), categoria: d.categoria, paraNinos: d.paraNinos, enlace: d.enlace.trim(), imagen: d.imagen ?? null,
 })
 
 type Manejador = (a: AlmacenDemo, p: string[], cuerpo: Cuerpo, consulta: URLSearchParams) => unknown
@@ -275,6 +287,19 @@ ruta('DELETE', '/entidad/eventos/(\\d+)', (a, [id]) => {
   return { ok: true }
 })
 
+ruta('GET', '/entidad/avisos', (a) => {
+  const { e } = entidadDe(a)
+  return a.avisos.filter((x) => x.entidadId === e.id).map(({ entidadId: _, ...x }) => x)
+})
+
+ruta('POST', '/entidad/avisos/leidos', (a) => {
+  const { e } = entidadDe(a)
+  a.avisos.forEach((x) => {
+    if (x.entidadId === e.id) x.leido = true
+  })
+  return { ok: true }
+})
+
 // ——— Dirección ———
 
 function direccion(a: AlmacenDemo) {
@@ -343,6 +368,12 @@ ruta('PUT', '/direccion/eventos/(\\d+)', (a, [id], c) => {
   return { ok: true }
 })
 
+const MENSAJES: Record<string, (t: string, m: string) => [titulo: string, texto: string, tipo: 'bien' | 'mal']> = {
+  evento_publicado: (t) => ['Evento publicado', `«${t}» ya está en la agenda. ¡Gracias!`, 'bien'],
+  evento_rechazado: (t, m) => ['Evento no publicado', `No hemos publicado «${t}» por este motivo:\n\n${m}\n\nPodéis corregirlo y volver a enviarlo.`, 'mal'],
+  evento_retirado: (t, m) => ['Evento retirado', `Hemos retirado «${t}» de la agenda por este motivo:\n\n${m}`, 'mal'],
+}
+
 const cambio = (desde: EstadoEvento[], hasta: EstadoEvento, accion: string, conMotivo = false): Manejador => (a, [id], c) => {
   const u = direccion(a)
   const ev = evento(a, Number(id))
@@ -352,7 +383,9 @@ const cambio = (desde: EstadoEvento[], hasta: EstadoEvento, accion: string, conM
   ev.motivo = conMotivo ? String(c.motivo).trim() : null
   if (hasta === 'retirado') ev.cambios = null
   apuntar(a, u.id, accion, `evento:${ev.id}`, conMotivo ? ev.motivo! : ev.titulo)
-  return { ok: true }
+  const mensaje = MENSAJES[accion]?.(ev.titulo, ev.motivo ?? '')
+  const avisado = mensaje && ev.entidadId !== 1 ? avisarEntidad(a, ev.entidadId, mensaje[2], mensaje[0], mensaje[1], ev.id) : undefined
+  return { ok: true, avisado }
 }
 
 ruta('POST', '/direccion/eventos/(\\d+)/aprobar', cambio(['pendiente'], 'publicado', 'evento_publicado'))
@@ -366,7 +399,7 @@ ruta('POST', '/direccion/eventos/(\\d+)/aprobar-cambios', (a, [id]) => {
   if (!ev.cambios) throw fallo(409, 'No hay cambios pendientes en este evento.')
   Object.assign(ev, ev.cambios, { cambios: null, actualizado: ahora() })
   apuntar(a, u.id, 'cambios_aprobados', `evento:${ev.id}`, ev.titulo)
-  return { ok: true }
+  return { ok: true, avisado: avisarEntidad(a, ev.entidadId, 'bien', 'Cambios publicados', `Los cambios en «${ev.titulo}» ya se ven en la agenda.`, ev.id) }
 })
 
 ruta('POST', '/direccion/eventos/(\\d+)/rechazar-cambios', (a, [id], c) => {
@@ -376,7 +409,7 @@ ruta('POST', '/direccion/eventos/(\\d+)/rechazar-cambios', (a, [id], c) => {
   ev.cambios = null
   ev.motivo = String(c.motivo ?? '')
   apuntar(a, u.id, 'cambios_rechazados', `evento:${ev.id}`, ev.motivo)
-  return { ok: true }
+  return { ok: true, avisado: avisarEntidad(a, ev.entidadId, 'mal', 'Cambios no publicados', `No hemos aplicado los cambios en «${ev.titulo}» por este motivo:\n\n${ev.motivo}\n\nEl evento sigue publicado como estaba.`, ev.id) }
 })
 
 ruta('GET', '/direccion/entidades', (a) => {
@@ -402,7 +435,13 @@ const cambioEntidad = (desde: EstadoEntidad[], hasta: EstadoEntidad, accion: str
   e.motivo = conMotivo ? String(c.motivo).trim() : null
   e.revisado = ahora()
   apuntar(a, u.id, accion, `entidad:${e.id}`, e.motivo ?? e.nombre)
-  return { ok: true }
+  const textos: Record<string, [string, string, 'bien' | 'mal']> = {
+    entidad_verificada: ['Entidad verificada', `«${e.nombre}» ya puede publicar en la agenda. Cada evento lo revisaremos antes de que salga.`, 'bien'],
+    entidad_rechazada: ['Alta no aceptada', `No hemos podido dar de alta «${e.nombre}» por este motivo:\n\n${e.motivo}`, 'mal'],
+    entidad_suspendida: ['Cuenta suspendida', `Hemos suspendido la cuenta de «${e.nombre}» por este motivo:\n\n${e.motivo}`, 'mal'],
+  }
+  const t = textos[accion]
+  return { ok: true, avisado: t ? avisarEntidad(a, e.id, t[2], t[0], t[1]) : undefined }
 }
 
 ruta('POST', '/direccion/entidades/(\\d+)/verificar', cambioEntidad(['pendiente', 'rechazada'], 'verificada', 'entidad_verificada'))
@@ -476,3 +515,18 @@ export async function apiDemo(metodo: string, rutaPedida: string, cuerpo: unknow
 }
 
 export { FalloDemo }
+
+/**
+ * Subida de imágenes en la demo: se guardan reducidas (900 px) como data: URL en el navegador,
+ * para que quepan varias en el almacenamiento local.
+ */
+export async function subirImagenDemo(imagen: Blob) {
+  const a = leerAlmacen()
+  if (!a.sesion?.segundoFactor) throw new FalloDemo(401, 'Tienes que entrar con tu cuenta.')
+  const pequena = await prepararFoto(new File([imagen], 'imagen.jpg', { type: imagen.type || 'image/jpeg' }), 900, 0.8)
+  const url = await blobADataUrl(pequena)
+  const clave = Array.from(crypto.getRandomValues(new Uint8Array(12)), (b) => b.toString(36).padStart(2, '0')).join('').slice(0, 24)
+  a.imagenes[clave] = url
+  guardarAlmacen(a)
+  return { clave, url }
+}

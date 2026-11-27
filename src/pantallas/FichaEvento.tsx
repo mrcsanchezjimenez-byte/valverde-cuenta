@@ -28,8 +28,16 @@ export function FichaEvento() {
 
   return (
     <div className="ficha">
-      <div className="ficha-imagen">
-        <Escena tipo={evento.escena} />
+      <div className={evento.imagen ? 'ficha-imagen con-cartel' : 'ficha-imagen'}>
+        {evento.imagen ? (
+          <>
+            {/* El cartel entero, sobre una versión difuminada de sí mismo para rellenar el hueco. */}
+            <img className="cartel-fondo" src={evento.imagen} alt="" aria-hidden="true" />
+            <a href={evento.imagen} target="_blank" rel="noopener noreferrer" className="cartel-enlace">
+              <img className="cartel" src={evento.imagen} alt={`Cartel de ${evento.titulo}`} />
+            </a>
+          </>
+        ) : <Escena tipo={evento.escena} />}
         <button className="boton-redondo boton-sobre izquierda" onClick={() => navegar(-1)} aria-label="Volver"><Icono n="atras" tam={20} /></button>
         <div className="botones-sobre">
           <button

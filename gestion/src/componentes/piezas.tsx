@@ -112,7 +112,7 @@ export function PedirMotivo({ titulo, boton, alConfirmar, alCancelar }: {
           placeholder="Lo leerá la entidad. Explica qué tiene que cambiar." />
       </label>
       <Fallo>{error}</Fallo>
-      <div className="g-fila">
+      <div className="g-fila-botones">
         <button type="button" className="g-boton g-boton-suave" onClick={alCancelar}>Cancelar</button>
         <button className="g-boton g-boton-peligro" disabled={ocupado}>{boton}</button>
       </div>

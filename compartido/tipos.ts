@@ -34,6 +34,8 @@ export interface Evento {
   enlace?: string
   /** El organizador lo ha cancelado: se sigue viendo, marcado, para que nadie vaya en balde. */
   cancelado?: boolean
+  /** Cartel o foto del evento. Si no hay, la app pone una ilustración según la categoría. */
+  imagen?: string
 }
 
 export type EstadoEvento = 'borrador' | 'pendiente' | 'publicado' | 'rechazado' | 'cancelado' | 'retirado'
@@ -70,6 +72,8 @@ export interface DatosEvento {
   categoria: Categoria
   paraNinos: boolean
   enlace: string
+  /** Clave de la imagen subida (cartel), o null para usar la ilustración genérica. */
+  imagen: string | null
 }
 
 /** Un evento visto desde el panel de gestión. */
@@ -86,10 +90,27 @@ export interface EventoGestion extends DatosEvento {
   motivo: string | null
   /** Cambios propuestos por la entidad sobre un evento ya publicado, a la espera de revisión. */
   cambios: DatosEvento | null
+  /** Dónde ver el cartel actual y el propuesto en los cambios (si los hay). */
+  imagenUrl: string | null
+  cambiosImagenUrl: string | null
   creado: string
   actualizado: string
   enviado: string | null
 }
+
+/** Aviso que le llega a una entidad dentro de su panel (además del correo). */
+export interface AvisoEntidad {
+  id: number
+  tipo: 'bien' | 'mal' | 'info'
+  titulo: string
+  texto: string
+  eventoId: number | null
+  leido: boolean
+  creado: string
+}
+
+/** Dirección de una imagen de evento a partir de su clave. */
+export const urlImagen = (clave: string) => `/api/imagenes/${clave}`
 
 export interface Municipio {
   id: number

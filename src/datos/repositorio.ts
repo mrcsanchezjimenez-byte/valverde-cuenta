@@ -59,7 +59,8 @@ async function descargar() {
       if (!r.ok) throw new Error(String(r.status))
       const datos: unknown = await r.json()
       if (!Array.isArray(datos)) throw new Error('formato')
-      const eventos = ordenar(datos.filter(esEvento))
+      // Los carteles vienen con ruta del servidor: en la app nativa hay que ponerles delante su dirección.
+      const eventos = ordenar(datos.filter(esEvento).map((e) => (e.imagen?.startsWith('/') ? { ...e, imagen: `${API}${e.imagen}` } : e)))
       ultimaDescarga = Date.now()
       escribir(CLAVE_COPIA, eventos)
       poner({ eventos, estado: 'listo' })

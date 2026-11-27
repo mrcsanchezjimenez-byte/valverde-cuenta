@@ -48,6 +48,22 @@
       ],
       "port": 5275,
       "url": "http://localhost:5275"
+    },
+    {
+      "name": "gestion-demo",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "--config",
+        "vite.gestion.config.ts",
+        "--port",
+        "5276",
+        "--strictPort",
+        "--mode",
+        "demo"
+      ],
+      "port": 5276,
+      "url": "http://localhost:5276"
     }
   ]
 }

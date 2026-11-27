@@ -33,6 +33,24 @@ Decisiones de partida (27/11/2026):
   - Oro y rojo del escudo.
   - Botones con relieve y letra grande.
 
+## Hecho después de la fase 1 (28/11/2026)
+
+- **Demostración pública** sin servidor, con el panel incluido y cuentas ficticias. Ver README.
+- **Aviso de responsabilidad**: la agenda difunde, no organiza. Solo se garantiza la identidad de la entidad.
+- **Panel rediseñado**:
+  - Menú con iconos, que en el móvil pasa a una barra inferior.
+  - Eventos agrupados por mes, con buscador y filtros con contador.
+  - Entidades en tarjetas que se pulsan enteras.
+  - Formulario por pasos con vista previa de cómo saldrá en la app.
+- **Avisos a la entidad** al publicar, no publicar, retirar, aprobar o rechazar cambios y verificar. Les llega por correo y queda en su panel («Avisos»). Dirección ve confirmado a quién se ha avisado.
+- **Cartel del evento** (opcional) que sube la entidad y se aprueba con el evento. Si no hay cartel, la app pone una ilustración según la categoría. No se cobra nada a las asociaciones.
+
+## Pedido, pendiente de hacer
+
+- **Fotos de los eventos** (después de celebrarse): galería que suben las entidades y que dirección aprueba foto a foto antes de que se vea.
+- **Reservas e inscripciones**: la entidad decide si su evento necesita apuntarse, con plazas, lista de espera y lista de inscritos. Ver la propuesta en la conversación del 28/11/2026.
+- **Fidelización** de quien usa la app: avisos del finde, guardados y recordatorios, historias, yincana, sellos o «pasaporte» de eventos.
+
 ## Fase 2 · Historias del pueblo y QR
 
 - Formulario «Cuéntanos una historia» con texto, **audio** y fotos antiguas, lugar y época.

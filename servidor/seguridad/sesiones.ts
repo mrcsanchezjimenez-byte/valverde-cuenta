@@ -58,7 +58,7 @@ interface FilaSesion {
   entidad_estado: EstadoEntidad | null
 }
 
-function leerSesion(c: Context): { usuario: UsuarioSesion; hash: string; segundoFactor: boolean } | null {
+export function leerSesion(c: Context): { usuario: UsuarioSesion; hash: string; segundoFactor: boolean } | null {
   const ficha = getCookie(c, COOKIE)
   if (!ficha || ficha.length > 100) return null
   const hash = huella(ficha)

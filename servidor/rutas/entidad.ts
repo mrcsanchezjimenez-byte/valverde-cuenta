@@ -1,9 +1,9 @@
 import { Hono } from 'hono'
-import { ejecutar } from '../bd.ts'
+import { ejecutar, varios } from '../bd.ts'
 import { fallo, type C, type Entorno } from '../contexto.ts'
 import { avisarDireccion } from '../correo.ts'
 import {
-  aGestion, cambiarEstado, comprobarFuturo, comprobarMunicipio, crearEvento, eventoDeEntidad, guardarDatos, listarEventos,
+  aGestion, cambiarEstado, comprobarFuturo, comprobarImagen, comprobarMunicipio, crearEvento, eventoDeEntidad, guardarDatos, listarEventos,
 } from '../eventos.ts'
 import { anotar } from '../registro.ts'
 import { permitir } from '../seguridad/limites.ts'
@@ -44,6 +44,7 @@ entidad.post('/eventos', async (c) => {
   const { evento, enviar, declaracion } = await leer(c, envioEvento)
   if (u.entidadEstado === 'rechazada' || u.entidadEstado === 'suspendida') exigirVerificada(c)
   comprobarMunicipio(evento.municipioId)
+  comprobarImagen(evento.imagen, u)
   if (enviar) {
     exigirVerificada(c)
     if (!declaracion) throw fallo(400, 'Marca la casilla de la declaración para enviarlo.')
@@ -66,6 +67,7 @@ entidad.put('/eventos/:id', async (c) => {
   const f = eventoDeEntidad(idDe(c), u.entidadId!)
   const { evento, enviar, declaracion } = await leer(c, envioEvento)
   comprobarMunicipio(evento.municipioId)
+  comprobarImagen(evento.imagen, u)
   if (u.entidadEstado === 'rechazada' || u.entidadEstado === 'suspendida') exigirVerificada(c)
 
   if (f.estado === 'publicado') {
@@ -119,5 +121,18 @@ entidad.delete('/eventos/:id', (c) => {
   if (!['borrador', 'rechazado', 'pendiente'].includes(f.estado)) throw fallo(409, 'Un evento publicado no se borra: se cancela.')
   ejecutar('DELETE FROM eventos WHERE id = ?', f.id)
   anotar(c, u.id, 'evento_borrado', `evento:${f.id}`, f.titulo)
+  return c.json({ ok: true })
+})
+
+// ——— Avisos de dirección para esta entidad ———
+
+entidad.get('/avisos', (c) => {
+  const filas = varios<{ id: number; tipo: 'bien' | 'mal' | 'info'; titulo: string; texto: string; evento_id: number | null; leido: number; creado: string }>(
+    'SELECT * FROM avisos WHERE entidad_id = ? ORDER BY id DESC LIMIT 50', c.get('usuario').entidadId!)
+  return c.json(filas.map((a) => ({ id: a.id, tipo: a.tipo, titulo: a.titulo, texto: a.texto, eventoId: a.evento_id, leido: Boolean(a.leido), creado: a.creado })))
+})
+
+entidad.post('/avisos/leidos', (c) => {
+  ejecutar('UPDATE avisos SET leido = 1 WHERE entidad_id = ? AND leido = 0', c.get('usuario').entidadId!)
   return c.json({ ok: true })
 })

@@ -44,6 +44,7 @@ export const esquemaEvento = z.object({
   categoria: z.enum(IDS_CATEGORIAS, 'Elige una categoría.'),
   paraNinos: z.boolean(),
   enlace: enlaceWeb,
+  imagen: z.string().regex(/^[a-z0-9]{24}$/, 'La imagen no es válida.').nullable(),
 }).strict()
   .refine((e) => e.fin > e.inicio, { message: 'El final tiene que ser después del inicio.', path: ['fin'] })
   .refine((e) => Date.parse(`${e.fin}:00Z`) - Date.parse(`${e.inicio}:00Z`) <= 31 * 86400_000, {

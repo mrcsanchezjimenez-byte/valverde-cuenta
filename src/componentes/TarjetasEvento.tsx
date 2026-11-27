@@ -13,7 +13,7 @@ export function TarjetaGrande({ evento }: { evento: Evento }) {
     <article className="tarjeta-grande">
       <Link to={`/evento/${evento.id}`} className="tarjeta-grande-enlace">
         <div className="tarjeta-grande-imagen">
-          <Escena tipo={evento.escena} />
+          {evento.imagen ? <img className="foto-evento" src={evento.imagen} alt="" loading="lazy" /> : <Escena tipo={evento.escena} />}
           <div className="sello-fecha"><small>{diaSemanaCorto(d)}</small><b>{d.getDate()}</b></div>
           {evento.cancelado
             ? <span className="etiqueta etiqueta-cancelado">Cancelado</span>
@@ -35,7 +35,9 @@ export function TarjetaGrande({ evento }: { evento: Evento }) {
 export function FilaEvento({ evento }: { evento: Evento }) {
   return (
     <Link to={`/evento/${evento.id}`} className="fila-evento">
-      <Escena tipo={evento.escena} clase="miniatura" />
+      {evento.imagen
+        ? <img className="miniatura foto-evento" src={evento.imagen} alt="" loading="lazy" />
+        : <Escena tipo={evento.escena} clase="miniatura" />}
       <div>
         <span className="etiqueta etiqueta-cuero">{evento.organizador}</span>
         {evento.cancelado && <span className="etiqueta etiqueta-cancelado">Cancelado</span>}

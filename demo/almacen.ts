@@ -10,7 +10,7 @@
  */
 import { escenaPorDefecto } from '../compartido/categorias.ts'
 import { EVENTOS } from '../compartido/ejemplo.ts'
-import type { DatosEvento, EstadoEntidad, Evento, EventoGestion, Municipio, Rol } from '../compartido/tipos.ts'
+import type { AvisoEntidad, DatosEvento, EstadoEntidad, Evento, EventoGestion, Municipio, Rol } from '../compartido/tipos.ts'
 import { CENTRO_VALVERDE, distanciaKm } from '../compartido/tipos.ts'
 
 export interface UsuarioDemo {
@@ -40,7 +40,8 @@ export interface EntidadDemo {
   revisado: string | null
 }
 
-export type EventoDemo = Omit<EventoGestion, 'entidadNombre'>
+export type EventoDemo = Omit<EventoGestion, 'entidadNombre' | 'imagenUrl' | 'cambiosImagenUrl'>
+export type AvisoDemo = AvisoEntidad & { entidadId: number }
 
 export interface ApunteDemo {
   id: number
@@ -59,6 +60,9 @@ export interface AlmacenDemo {
   eventos: EventoDemo[]
   municipios: Omit<Municipio, 'distanciaKm'>[]
   registro: ApunteDemo[]
+  avisos: AvisoDemo[]
+  /** Imágenes subidas en la demo: clave → data: URL (reducidas para que quepan en el navegador). */
+  imagenes: Record<string, string>
   sesion: { usuarioId: number; segundoFactor: boolean } | null
   siguienteId: number
 }
@@ -70,7 +74,7 @@ export const CUENTAS_DEMO = {
 }
 
 const CLAVE = 'vc.demo'
-const VERSION = 1
+const VERSION = 2
 const ahora = () => new Date().toISOString().replace(/\.\d+Z$/, 'Z')
 
 /** Fecha local (AAAA-MM-DDTHH:mm) dentro de `dias` días, a la hora indicada. */
@@ -104,6 +108,8 @@ function sembrar(): AlmacenDemo {
   const usuarios: UsuarioDemo[] = [
     { id: 1, email: CUENTAS_DEMO.direccion.email, clave: CUENTAS_DEMO.direccion.clave, nombre: 'Pilar', rol: 'direccion', entidadId: null, totpActivo: true },
     { id: 2, email: CUENTAS_DEMO.entidad.email, clave: CUENTAS_DEMO.entidad.clave, nombre: 'Juan Pérez', rol: 'entidad', entidadId: 2, totpActivo: false },
+    { id: 3, email: 'ampa@demo.valverdecuenta', clave: CUENTAS_DEMO.entidad.clave, nombre: 'Rosa Gil', rol: 'entidad', entidadId: 3, totpActivo: false },
+    { id: 4, email: 'senderismo@demo.valverdecuenta', clave: CUENTAS_DEMO.entidad.clave, nombre: 'Luis Domínguez', rol: 'entidad', entidadId: 4, totpActivo: false },
   ]
 
   // Los ejemplos se mueven para que siempre caigan en las próximas semanas.
@@ -118,7 +124,7 @@ function sembrar(): AlmacenDemo {
       id: id++, slug: e.id, estado: 'publicado' as const, entidadId: 1, organizador: e.organizador,
       titulo: e.titulo, resumen: e.resumen, descripcion: e.descripcion, inicio: mover(e.inicio), fin: mover(e.fin),
       lugar: e.lugar, municipioId: m.id, lat: e.lat, lng: e.lng, precio: e.precio, publico: e.publico,
-      categoria: e.categoria, paraNinos: Boolean(e.paraNinos), enlace: '', escena: e.escena,
+      categoria: e.categoria, paraNinos: Boolean(e.paraNinos), enlace: '', imagen: null, escena: e.escena,
       enlazaYincana: Boolean(e.enlazaYincana), motivo: null, cambios: null, creado: t, actualizado: t, enviado: t,
     }]
   })
@@ -132,13 +138,13 @@ function sembrar(): AlmacenDemo {
       titulo: 'Cata de dulces de Navidad', resumen: 'Las socias de la peña preparan los dulces de siempre para probarlos.',
       descripcion: 'Una tarde para probar pestiños, roscos y polvorones caseros, con las recetas de las abuelas del pueblo.\n\nPlazas limitadas.',
       inicio: dentroDe(9, '18:00'), fin: dentroDe(9, '20:00'), lugar: 'Sede de la Peña El Boto', municipioId: 1, lat: 37.5741, lng: -6.7512,
-      precio: null, publico: 'Todos los públicos', categoria: 'fiestas', paraNinos: true, enlace: '',
+      precio: null, publico: 'Todos los públicos', categoria: 'fiestas', paraNinos: true, enlace: '', imagen: null,
     }),
     base({
       titulo: 'Ruta al Pozo de la Nieve', resumen: 'Senderismo de dificultad media con salida desde Calañas.',
       descripcion: 'Doce kilómetros por caminos del Andévalo. Lleva agua, calzado de montaña y algo de comer.',
       inicio: dentroDe(12, '09:00'), fin: dentroDe(12, '14:00'), lugar: 'Plaza de España', municipioId: 3, lat: 37.6553, lng: -6.8789,
-      precio: 3, publico: 'Adultos', categoria: 'deporte', paraNinos: false, enlace: '', estado: 'publicado', entidadId: 4,
+      precio: 3, publico: 'Adultos', categoria: 'deporte', paraNinos: false, enlace: '', imagen: null, estado: 'publicado', entidadId: 4,
     }),
   )
   // Un evento publicado con cambios propuestos: así se ve la comparación en el panel.
@@ -146,13 +152,17 @@ function sembrar(): AlmacenDemo {
     titulo: 'Concierto de la Peña', resumen: 'La peña celebra su aniversario con música en directo.',
     descripcion: 'Actuación de grupos locales para celebrar el aniversario de la peña. Habrá ambigú.',
     inicio: dentroDe(16, '20:00'), fin: dentroDe(16, '23:00'), lugar: 'Plaza de la Constitución', municipioId: 1, lat: 37.573977, lng: -6.74894,
-    precio: null, publico: 'Todos los públicos', categoria: 'musica', paraNinos: false, enlace: '', estado: 'publicado',
+    precio: null, publico: 'Todos los públicos', categoria: 'musica', paraNinos: false, enlace: '', imagen: null, estado: 'publicado',
   })
   conCambios.cambios = { ...conCambios, inicio: dentroDe(16, '21:00'), fin: dentroDe(16, '23:30'), titulo: 'Concierto aniversario de la Peña' }
   eventos.push(conCambios)
 
   return {
-    version: VERSION, usuarios, entidades, eventos, municipios: MUNICIPIOS, sesion: null, siguienteId: 1000,
+    version: VERSION, usuarios, entidades, eventos, municipios: MUNICIPIOS, sesion: null, siguienteId: 1000, imagenes: {},
+    avisos: [{
+      id: 1, entidadId: 2, tipo: 'bien', titulo: 'Entidad verificada', leido: false, eventoId: null, creado: t,
+      texto: '«Peña Cultural El Boto» ya puede publicar en la agenda. Cada evento lo revisaremos antes de que salga.',
+    }],
     registro: [{ id: 1, fecha: t, accion: 'demo_creada', objeto: '', detalle: 'Datos de demostración', ip: '—', usuarioId: null }],
   }
 }
@@ -202,6 +212,7 @@ export function eventosPublicosDemo(): Evento[] {
       escena: e.escena,
       ...(e.paraNinos ? { paraNinos: true } : {}), ...(e.enlazaYincana ? { enlazaYincana: true } : {}),
       ...(e.enlace ? { enlace: e.enlace } : {}), ...(e.estado === 'cancelado' ? { cancelado: true } : {}),
+      ...(e.imagen && a.imagenes[e.imagen] ? { imagen: a.imagenes[e.imagen] } : {}),
     }
   })
 }

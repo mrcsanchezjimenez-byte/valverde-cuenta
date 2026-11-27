@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import { escenaPorDefecto } from '../compartido/categorias.ts'
 import type { Categoria, DatosEvento, EstadoEvento, Evento, EventoGestion, TipoEscena } from '../compartido/tipos.ts'
+import { urlImagen } from '../compartido/tipos.ts'
 import { ahoraIso, ahoraLocal, ejecutar, uno, varios } from './bd.ts'
 import { fallo } from './contexto.ts'
 
@@ -26,6 +27,7 @@ export interface FilaEvento {
   categoria: Categoria
   para_ninos: number
   enlace: string
+  imagen: string | null
   escena: TipoEscena
   enlaza_yincana: number
   organizador: string | null
@@ -46,7 +48,7 @@ const datosDe = (f: FilaEvento): DatosEvento => ({
   titulo: f.titulo, resumen: f.resumen, descripcion: f.descripcion, inicio: f.inicio, fin: f.fin, lugar: f.lugar,
   municipioId: f.municipio_id, lat: f.lat, lng: f.lng,
   precio: f.precio_centimos === null ? null : f.precio_centimos / 100,
-  publico: f.publico, categoria: f.categoria, paraNinos: Boolean(f.para_ninos), enlace: f.enlace,
+  publico: f.publico, categoria: f.categoria, paraNinos: Boolean(f.para_ninos), enlace: f.enlace, imagen: f.imagen,
 })
 
 export const aGestion = (f: FilaEvento): EventoGestion => ({
@@ -54,6 +56,8 @@ export const aGestion = (f: FilaEvento): EventoGestion => ({
   id: f.id, slug: f.slug, estado: f.estado, entidadId: f.entidad_id, entidadNombre: f.entidad_nombre,
   organizador: f.organizador, escena: f.escena, enlazaYincana: Boolean(f.enlaza_yincana), motivo: f.motivo,
   cambios: f.cambios ? (JSON.parse(f.cambios) as DatosEvento) : null,
+  imagenUrl: f.imagen ? urlImagen(f.imagen) : null,
+  cambiosImagenUrl: f.cambios && (JSON.parse(f.cambios) as DatosEvento).imagen ? urlImagen((JSON.parse(f.cambios) as DatosEvento).imagen!) : null,
   creado: f.creado, actualizado: f.actualizado, enviado: f.enviado,
 })
 
@@ -68,6 +72,7 @@ export const aPublico = (f: FilaEvento): Evento => ({
   ...(f.enlaza_yincana ? { enlazaYincana: true } : {}),
   ...(f.enlace ? { enlace: f.enlace } : {}),
   ...(f.estado === 'cancelado' ? { cancelado: true } : {}),
+  ...(f.imagen ? { imagen: urlImagen(f.imagen) } : {}),
 })
 
 export const leerEvento = (id: number) => uno<FilaEvento>(`${SELECT} WHERE ev.id = ?`, id)
@@ -95,6 +100,16 @@ export function eventosPublicos() {
 }
 
 /** Comprueba que el municipio existe y está dentro de la zona de la agenda. */
+/**
+ * Una imagen solo la puede usar quien la subió: su entidad, o dirección (que puede usar cualquiera).
+ * Así nadie puede colgar en su evento una imagen ajena adivinando su clave.
+ */
+export function comprobarImagen(clave: string | null, quien: { rol: 'direccion' | 'entidad'; entidadId: number | null }) {
+  if (!clave) return
+  const img = uno<{ entidad_id: number | null }>('SELECT entidad_id FROM imagenes WHERE clave = ?', clave)
+  if (!img || (quien.rol !== 'direccion' && img.entidad_id !== quien.entidadId)) throw fallo(400, 'La imagen no es válida. Vuelve a subirla.')
+}
+
 export function comprobarMunicipio(id: number) {
   const m = uno<{ activo: number }>('SELECT activo FROM municipios WHERE id = ?', id)
   if (!m || !m.activo) throw fallo(400, 'Ese municipio no está en la zona de la agenda.')
@@ -107,15 +122,15 @@ export function comprobarFuturo(d: DatosEvento) {
 
 const columnas = (d: DatosEvento) => [
   d.titulo, d.resumen, d.descripcion, d.inicio, d.fin, d.lugar, d.municipioId, d.lat, d.lng,
-  d.precio === null || d.precio === 0 ? null : Math.round(d.precio * 100), d.publico, d.categoria, d.paraNinos, d.enlace,
+  d.precio === null || d.precio === 0 ? null : Math.round(d.precio * 100), d.publico, d.categoria, d.paraNinos, d.enlace, d.imagen,
 ] as const
 
 export function crearEvento(entidadId: number, d: DatosEvento, estado: EstadoEvento, extra: { organizador?: string | null } = {}) {
   const ahora = ahoraIso()
   const r = ejecutar(
     `INSERT INTO eventos (slug, entidad_id, estado, titulo, resumen, descripcion, inicio, fin, lugar, municipio_id, lat, lng,
-       precio_centimos, publico, categoria, para_ninos, enlace, escena, organizador, enviado, creado, actualizado)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       precio_centimos, publico, categoria, para_ninos, enlace, imagen, escena, organizador, enviado, creado, actualizado)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     nuevoSlug(), entidadId, estado, ...columnas(d), escenaPorDefecto(d.categoria), extra.organizador ?? null,
     estado === 'borrador' ? null : ahora, ahora, ahora,
   )
@@ -125,7 +140,7 @@ export function crearEvento(entidadId: number, d: DatosEvento, estado: EstadoEve
 export function guardarDatos(id: number, d: DatosEvento) {
   ejecutar(
     `UPDATE eventos SET titulo = ?, resumen = ?, descripcion = ?, inicio = ?, fin = ?, lugar = ?, municipio_id = ?, lat = ?, lng = ?,
-       precio_centimos = ?, publico = ?, categoria = ?, para_ninos = ?, enlace = ?, actualizado = ? WHERE id = ?`,
+       precio_centimos = ?, publico = ?, categoria = ?, para_ninos = ?, enlace = ?, imagen = ?, actualizado = ? WHERE id = ?`,
     ...columnas(d), ahoraIso(), id,
   )
 }

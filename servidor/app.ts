@@ -12,6 +12,7 @@ import type { Entorno } from './contexto.ts'
 import { cuenta } from './rutas/cuenta.ts'
 import { direccion } from './rutas/direccion.ts'
 import { entidad } from './rutas/entidad.ts'
+import { imagenes } from './rutas/imagenes.ts'
 import { publico } from './rutas/publico.ts'
 import { exigir } from './seguridad/sesiones.ts'
 
@@ -33,7 +34,8 @@ export function crearApp() {
       scriptSrc: ["'self'"],
       // Leaflet pone estilos en línea en el mapa.
       styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", 'data:', 'https://tile.openstreetmap.org'],
+      // blob: para ver la imagen elegida antes de subirla.
+      imgSrc: ["'self'", 'data:', 'blob:', 'https://tile.openstreetmap.org'],
       connectSrc: ["'self'"],
       fontSrc: ["'self'"],
       objectSrc: ["'none'"],
@@ -48,7 +50,10 @@ export function crearApp() {
   }))
 
   // ——— API ———
-  app.use('/api/*', bodyLimit({ maxSize: 64 * 1024, onError: (c) => c.json({ error: 'Demasiados datos.' }, 413) }))
+  // Las peticiones normales son pequeñas; solo la subida de imágenes admite más (una foto ya reducida).
+  const limiteNormal = bodyLimit({ maxSize: 64 * 1024, onError: (c) => c.json({ error: 'Demasiados datos.' }, 413) })
+  const limiteImagen = bodyLimit({ maxSize: 7 * 1024 * 1024, onError: (c) => c.json({ error: 'La imagen pesa demasiado (máximo 6 MB).' }, 413) })
+  app.use('/api/*', (c, next) => (c.req.method === 'POST' && c.req.path === '/api/imagenes' ? limiteImagen : limiteNormal)(c, next))
 
   /**
    * Contra peticiones falsificadas desde otras webs: toda escritura debe venir en JSON, con una
@@ -57,9 +62,10 @@ export function crearApp() {
   app.use('/api/*', async (c, next) => {
     if (!SEGUROS.has(c.req.method)) {
       const origen = c.req.header('origin')
-      // El panel siempre manda JSON (aunque sea {}); solo DELETE va sin cuerpo.
-      const json = (c.req.header('content-type') ?? '').startsWith('application/json')
-      if (c.req.header('x-vc') !== '1' || (origen && origen !== config.origenGestion) || (!json && c.req.method !== 'DELETE')) {
+      // El panel siempre manda JSON (aunque sea {}) o, para subir imágenes, un formulario multipart; DELETE va sin cuerpo.
+      const tipo = c.req.header('content-type') ?? ''
+      const valido = tipo.startsWith('application/json') || (c.req.path === '/api/imagenes' && tipo.startsWith('multipart/form-data'))
+      if (c.req.header('x-vc') !== '1' || (origen && origen !== config.origenGestion) || (!valido && c.req.method !== 'DELETE')) {
         return c.json({ error: 'Petición no permitida.' }, 403)
       }
     }
@@ -71,6 +77,7 @@ export function crearApp() {
   app.route('/api/cuenta', cuenta)
   app.route('/api/entidad', entidad)
   app.route('/api/direccion', direccion)
+  app.route('/api/imagenes', imagenes)
 
   /** Municipios con los inactivos incluidos: para dirección. Los demás usan /api/publico/municipios. */
   app.get('/api/municipios/todos', exigir({ rol: 'direccion' }), (c) => {

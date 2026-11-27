@@ -45,7 +45,8 @@ export class Cliente {
     })
     const nueva = r.headers.get('set-cookie')
     if (nueva) this.cookie = /Max-Age=0/i.test(nueva) ? '' : nueva.split(';')[0]
-    const texto = await r.text()
+    const esJson = (r.headers.get('content-type') ?? '').includes('application/json')
+    const texto = esJson ? await r.text() : ''
     return { estado: r.status, datos: texto ? JSON.parse(texto) : null, cabeceras: r.headers }
   }
 }
@@ -107,7 +108,7 @@ export function eventoValido(cambios: Record<string, unknown> = {}) {
     titulo: 'Concierto de la banda', resumen: 'La banda toca su repertorio de invierno.',
     descripcion: 'Un concierto al aire libre para toda la familia, con repertorio clásico.',
     inicio: `${d}T19:00`, fin: `${d}T21:00`, lugar: 'Plaza de la Constitución', municipioId: 1,
-    lat: 37.574, lng: -6.749, precio: null, publico: 'Todos los públicos', categoria: 'musica', paraNinos: true, enlace: '',
+    lat: 37.574, lng: -6.749, precio: null, publico: 'Todos los públicos', categoria: 'musica', paraNinos: true, enlace: '', imagen: null,
     ...cambios,
   }
 }

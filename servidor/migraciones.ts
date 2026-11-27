@@ -137,4 +137,100 @@ export const MIGRACIONES: string[] = [
   INSERT INTO entidades (nombre, tipo, municipio_id, estado, interna)
     VALUES ('Valverde Cuenta', 'otra', 1, 'verificada', 1);
   `,
+
+  /* 2 · Historias del pueblo, lugares con QR y archivos (fotos y audios) */ `
+  -- Un lugar es donde va una placa con QR. El slug no cambia nunca: está impreso en la placa.
+  CREATE TABLE lugares (
+    id INTEGER PRIMARY KEY,
+    slug TEXT NOT NULL UNIQUE,
+    nombre TEXT NOT NULL,
+    descripcion TEXT NOT NULL DEFAULT '',
+    direccion TEXT NOT NULL DEFAULT '',
+    lat REAL NOT NULL,
+    lng REAL NOT NULL,
+    -- Quién tiene la placa: Ayuntamiento, un comercio, una parroquia…
+    anfitrion TEXT NOT NULL DEFAULT '',
+    activo INTEGER NOT NULL DEFAULT 1,
+    creado TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+  );
+
+  CREATE TABLE historias (
+    id INTEGER PRIMARY KEY,
+    slug TEXT NOT NULL UNIQUE,
+    estado TEXT NOT NULL CHECK (estado IN ('pendiente','publicada','rechazada','retirada')),
+    origen TEXT NOT NULL CHECK (origen IN ('web','entrevista')),
+    titulo TEXT NOT NULL,
+    texto TEXT NOT NULL DEFAULT '',
+    epoca TEXT NOT NULL DEFAULT '',
+    lugar_id INTEGER REFERENCES lugares(id),
+    -- Si no es uno de los lugares con placa: dónde dice quien la cuenta que pasó.
+    lugar_texto TEXT NOT NULL DEFAULT '',
+    -- Cómo se firma en público: con nombre o como «un vecino o vecina».
+    firma TEXT NOT NULL CHECK (firma IN ('nombre','anonimo')),
+    autor TEXT NOT NULL DEFAULT '',
+    -- Datos de contacto: solo los ve dirección, nunca se publican.
+    contacto_nombre TEXT NOT NULL DEFAULT '',
+    contacto_email TEXT NOT NULL DEFAULT '',
+    contacto_telefono TEXT NOT NULL DEFAULT '',
+    -- Qué aceptó, cuándo y con qué versión del texto legal (JSON).
+    consentimiento TEXT NOT NULL,
+    motivo TEXT,
+    nota TEXT NOT NULL DEFAULT '',
+    creado TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
+    actualizado TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
+    revisado TEXT,
+    revisado_por INTEGER
+  );
+  CREATE INDEX historias_estado ON historias(estado);
+  CREATE INDEX historias_lugar ON historias(lugar_id);
+
+  -- Los archivos están en disco con un nombre aleatorio (clave), fuera de cualquier carpeta pública.
+  CREATE TABLE archivos (
+    id INTEGER PRIMARY KEY,
+    clave TEXT NOT NULL UNIQUE,
+    historia_id INTEGER NOT NULL REFERENCES historias(id) ON DELETE CASCADE,
+    tipo TEXT NOT NULL CHECK (tipo IN ('foto','audio')),
+    mime TEXT NOT NULL,
+    bytes INTEGER NOT NULL,
+    publicar INTEGER NOT NULL DEFAULT 1,
+    pie TEXT NOT NULL DEFAULT '',
+    orden INTEGER NOT NULL DEFAULT 0,
+    creado TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+  );
+  CREATE INDEX archivos_historia ON archivos(historia_id);
+
+  -- Escaneos de cada placa por día. Sin IP ni nada que identifique a quien escanea.
+  CREATE TABLE escaneos (
+    lugar_id INTEGER NOT NULL REFERENCES lugares(id) ON DELETE CASCADE,
+    dia TEXT NOT NULL,
+    cuenta INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (lugar_id, dia)
+  );
+  `,
+
+  /* 3 · Cartel de cada evento y avisos para las entidades dentro de su panel */ `
+  -- Imágenes subidas para los eventos (carteles). Quien la sube es su dueño: nadie más puede usarla.
+  CREATE TABLE imagenes (
+    clave TEXT PRIMARY KEY,
+    entidad_id INTEGER REFERENCES entidades(id),
+    usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
+    mime TEXT NOT NULL,
+    bytes INTEGER NOT NULL,
+    creado TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+  );
+  ALTER TABLE eventos ADD COLUMN imagen TEXT REFERENCES imagenes(clave);
+
+  -- Lo que le pasa a una entidad (publicado, no publicado, verificada…) también le queda en su panel.
+  CREATE TABLE avisos (
+    id INTEGER PRIMARY KEY,
+    entidad_id INTEGER NOT NULL REFERENCES entidades(id) ON DELETE CASCADE,
+    tipo TEXT NOT NULL CHECK (tipo IN ('bien','mal','info')),
+    titulo TEXT NOT NULL,
+    texto TEXT NOT NULL DEFAULT '',
+    evento_id INTEGER REFERENCES eventos(id) ON DELETE SET NULL,
+    leido INTEGER NOT NULL DEFAULT 0,
+    creado TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+  );
+  CREATE INDEX avisos_entidad ON avisos(entidad_id, leido);
+  `,
 ]

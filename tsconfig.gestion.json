@@ -18,5 +18,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["gestion/src", "compartido", "demo"]
+  "include": ["gestion/src", "compartido", "demo", "navegador"]
 }

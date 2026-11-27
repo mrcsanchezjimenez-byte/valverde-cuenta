@@ -6,7 +6,7 @@ import { ahoraIso, ejecutar, transaccion, uno, varios } from '../bd.ts'
 import { fallo, type C, type Entorno } from '../contexto.ts'
 import { enlaceGestion, enviarCorreo } from '../correo.ts'
 import {
-  aGestion, cambiarEstado, comprobarMunicipio, crearEvento, eventoParaDireccion, guardarDatos, listarEventos, type FilaEvento,
+  aGestion, cambiarEstado, comprobarImagen, comprobarMunicipio, crearEvento, eventoParaDireccion, guardarDatos, listarEventos, type FilaEvento,
 } from '../eventos.ts'
 import { anotar } from '../registro.ts'
 import { exigir } from '../seguridad/sesiones.ts'
@@ -26,9 +26,15 @@ const id = (c: C) => {
 const correoEntidad = (entidadId: number) =>
   varios<{ email: string; nombre: string }>("SELECT email, nombre FROM usuarios WHERE entidad_id = ? AND activo = 1", entidadId)
 
-async function escribirAEntidad(entidadId: number, asunto: string, texto: string) {
+type TipoAviso = 'bien' | 'mal' | 'info'
+
+/** Avisa a la entidad por los dos caminos: correo y aviso dentro de su panel. Devuelve su nombre para confirmarlo. */
+async function escribirAEntidad(entidadId: number, asunto: string, texto: string, tipo: TipoAviso = 'info', eventoId: number | null = null) {
+  ejecutar('INSERT INTO avisos (entidad_id, tipo, titulo, texto, evento_id) VALUES (?, ?, ?, ?, ?)',
+    entidadId, tipo, asunto.replace(/ · Valverde Cuenta$/, ''), texto, eventoId)
   await Promise.all(correoEntidad(entidadId).map((u) =>
     enviarCorreo({ para: u.email, asunto, texto: `Hola, ${u.nombre}:\n\n${texto}\n\nPanel de vuestra entidad: ${enlaceGestion('/')}` })))
+  return uno<{ nombre: string }>('SELECT nombre FROM entidades WHERE id = ?', entidadId)?.nombre ?? ''
 }
 
 interface FilaEntidad {
@@ -100,6 +106,7 @@ direccion.get('/eventos/:id', (c) => c.json(aGestion(eventoParaDireccion(id(c)))
 direccion.post('/eventos', async (c) => {
   const d = await leer(c, z.object({ evento: esquemaEvento, ajustes: ajustesDireccion, entidadId: z.number().int().positive() }).strict())
   comprobarMunicipio(d.evento.municipioId)
+  comprobarImagen(d.evento.imagen, c.get('usuario'))
   const en = uno<{ interna: number; estado: string }>('SELECT interna, estado FROM entidades WHERE id = ?', d.entidadId)
   if (!en || en.estado !== 'verificada') throw fallo(400, 'Elige una entidad verificada.')
   if (en.interna && !d.ajustes.organizador) throw fallo(400, 'Escribe quién organiza el evento.')
@@ -118,6 +125,7 @@ direccion.put('/eventos/:id', async (c) => {
   const f = eventoParaDireccion(id(c))
   const d = await leer(c, z.object({ evento: esquemaEvento, ajustes: ajustesDireccion }).strict())
   comprobarMunicipio(d.evento.municipioId)
+  comprobarImagen(d.evento.imagen, c.get('usuario'))
   const interna = uno<{ interna: number }>('SELECT interna FROM entidades WHERE id = ?', f.entidad_id)?.interna
   transaccion(() => {
     guardarDatos(f.id, d.evento)
@@ -133,8 +141,8 @@ direccion.post('/eventos/:id/aprobar', async (c) => {
   if (f.estado !== 'pendiente') throw fallo(409, 'Este evento no está pendiente de revisión.')
   cambiarEstado(f.id, 'publicado', { revisor: c.get('usuario').id })
   anotar(c, c.get('usuario').id, 'evento_publicado', `evento:${f.id}`, f.titulo)
-  await escribirAEntidad(f.entidad_id, 'Evento publicado · Valverde Cuenta', `«${f.titulo}» ya está en la agenda. ¡Gracias!`)
-  return c.json({ ok: true })
+  const avisado = await escribirAEntidad(f.entidad_id, 'Evento publicado · Valverde Cuenta', `«${f.titulo}» ya está en la agenda. ¡Gracias!`, 'bien', f.id)
+  return c.json({ ok: true, avisado })
 })
 
 direccion.post('/eventos/:id/rechazar', async (c) => {
@@ -143,9 +151,9 @@ direccion.post('/eventos/:id/rechazar', async (c) => {
   if (f.estado !== 'pendiente') throw fallo(409, 'Este evento no está pendiente de revisión.')
   cambiarEstado(f.id, 'rechazado', { motivo: m, revisor: c.get('usuario').id })
   anotar(c, c.get('usuario').id, 'evento_rechazado', `evento:${f.id}`, m)
-  await escribirAEntidad(f.entidad_id, 'Evento no publicado · Valverde Cuenta',
-    `No hemos publicado «${f.titulo}» por este motivo:\n\n${m}\n\nPodéis corregirlo y volver a enviarlo desde el panel.`)
-  return c.json({ ok: true })
+  const avisado = await escribirAEntidad(f.entidad_id, 'Evento no publicado · Valverde Cuenta',
+    `No hemos publicado «${f.titulo}» por este motivo:\n\n${m}\n\nPodéis corregirlo y volver a enviarlo desde el panel.`, 'mal', f.id)
+  return c.json({ ok: true, avisado })
 })
 
 direccion.post('/eventos/:id/aprobar-cambios', async (c) => {
@@ -157,8 +165,8 @@ direccion.post('/eventos/:id/aprobar-cambios', async (c) => {
     ejecutar('UPDATE eventos SET cambios = NULL, revisado = ?, revisado_por = ? WHERE id = ?', ahoraIso(), c.get('usuario').id, f.id)
   })
   anotar(c, c.get('usuario').id, 'cambios_aprobados', `evento:${f.id}`, cambios.titulo)
-  await escribirAEntidad(f.entidad_id, 'Cambios publicados · Valverde Cuenta', `Los cambios en «${cambios.titulo}» ya se ven en la agenda.`)
-  return c.json({ ok: true })
+  const avisado = await escribirAEntidad(f.entidad_id, 'Cambios publicados · Valverde Cuenta', `Los cambios en «${cambios.titulo}» ya se ven en la agenda.`, 'bien', f.id)
+  return c.json({ ok: true, avisado })
 })
 
 direccion.post('/eventos/:id/rechazar-cambios', async (c) => {
@@ -167,9 +175,9 @@ direccion.post('/eventos/:id/rechazar-cambios', async (c) => {
   if (!f.cambios) throw fallo(409, 'No hay cambios pendientes en este evento.')
   ejecutar('UPDATE eventos SET cambios = NULL, motivo = ? WHERE id = ?', m, f.id)
   anotar(c, c.get('usuario').id, 'cambios_rechazados', `evento:${f.id}`, m)
-  await escribirAEntidad(f.entidad_id, 'Cambios no publicados · Valverde Cuenta',
-    `No hemos aplicado los cambios en «${f.titulo}» por este motivo:\n\n${m}\n\nEl evento sigue publicado como estaba.`)
-  return c.json({ ok: true })
+  const avisado = await escribirAEntidad(f.entidad_id, 'Cambios no publicados · Valverde Cuenta',
+    `No hemos aplicado los cambios en «${f.titulo}» por este motivo:\n\n${m}\n\nEl evento sigue publicado como estaba.`, 'mal', f.id)
+  return c.json({ ok: true, avisado })
 })
 
 /** Quitar de la agenda algo ya publicado (incumple las normas, duplicado…). */
@@ -180,8 +188,8 @@ direccion.post('/eventos/:id/retirar', async (c) => {
   cambiarEstado(f.id, 'retirado', { motivo: m, revisor: c.get('usuario').id })
   ejecutar('UPDATE eventos SET cambios = NULL WHERE id = ?', f.id)
   anotar(c, c.get('usuario').id, 'evento_retirado', `evento:${f.id}`, m)
-  await escribirAEntidad(f.entidad_id, 'Evento retirado · Valverde Cuenta', `Hemos retirado «${f.titulo}» de la agenda por este motivo:\n\n${m}`)
-  return c.json({ ok: true })
+  const avisado = await escribirAEntidad(f.entidad_id, 'Evento retirado · Valverde Cuenta', `Hemos retirado «${f.titulo}» de la agenda por este motivo:\n\n${m}`, 'mal', f.id)
+  return c.json({ ok: true, avisado })
 })
 
 /** Volver a publicar algo retirado o cancelado por error. */
@@ -220,22 +228,22 @@ async function cambiarEntidad(c: C, estado: EstadoEntidad, accion: string, desde
 
 direccion.post('/entidades/:id/verificar', async (c) => {
   const e = await cambiarEntidad(c, 'verificada', 'entidad_verificada', ['pendiente', 'rechazada'], null)
-  await escribirAEntidad(e.id, 'Entidad verificada · Valverde Cuenta', `«${e.nombre}» ya puede publicar en la agenda. Cada evento lo revisaremos antes de que salga.`)
-  return c.json({ ok: true })
+  const avisado = await escribirAEntidad(e.id, 'Entidad verificada · Valverde Cuenta', `«${e.nombre}» ya puede publicar en la agenda. Cada evento lo revisaremos antes de que salga.`, 'bien')
+  return c.json({ ok: true, avisado })
 })
 
 direccion.post('/entidades/:id/rechazar', async (c) => {
   const { motivo: m } = await leer(c, motivo)
   const e = await cambiarEntidad(c, 'rechazada', 'entidad_rechazada', ['pendiente'], m)
-  await escribirAEntidad(e.id, 'Alta no aceptada · Valverde Cuenta', `No hemos podido dar de alta «${e.nombre}» por este motivo:\n\n${m}`)
-  return c.json({ ok: true })
+  const avisado = await escribirAEntidad(e.id, 'Alta no aceptada · Valverde Cuenta', `No hemos podido dar de alta «${e.nombre}» por este motivo:\n\n${m}`, 'mal')
+  return c.json({ ok: true, avisado })
 })
 
 direccion.post('/entidades/:id/suspender', async (c) => {
   const { motivo: m } = await leer(c, motivo)
   const e = await cambiarEntidad(c, 'suspendida', 'entidad_suspendida', ['verificada'], m)
-  await escribirAEntidad(e.id, 'Cuenta suspendida · Valverde Cuenta', `Hemos suspendido la cuenta de «${e.nombre}» por este motivo:\n\n${m}`)
-  return c.json({ ok: true })
+  const avisado = await escribirAEntidad(e.id, 'Cuenta suspendida · Valverde Cuenta', `Hemos suspendido la cuenta de «${e.nombre}» por este motivo:\n\n${m}`, 'mal')
+  return c.json({ ok: true, avisado })
 })
 
 direccion.post('/entidades/:id/reactivar', async (c) => {
