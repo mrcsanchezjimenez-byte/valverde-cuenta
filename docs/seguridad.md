@@ -55,6 +55,25 @@ Qué protege hoy el sistema y qué queda para la puesta en marcha. Todo lo marca
 - Consultas a la base de datos siempre con parámetros: no se puede inyectar SQL.
 - React escapa todo el texto: lo que escribe una entidad no se puede ejecutar como código.
 
+## Datos de la gente y archivos
+
+- **Inscripciones**:
+  - Nombre y un teléfono o correo, nada más.
+  - Las ve solo la entidad que organiza (y dirección en solo lectura).
+  - Se borran solas un mes después del evento.
+  - El código para cancelar se guarda solo como huella. Hay campo trampa y límites contra robots y abusos (✓ prueba).
+- **Historias**:
+  - Los datos de contacto nunca salen en la parte pública (✓ prueba).
+  - Los permisos aceptados quedan guardados con fecha y versión del texto.
+  - Borrar una historia elimina también sus archivos del disco (✓ prueba).
+- **Fotos y audios**:
+  - El tipo se decide por los bytes del archivo, no por su nombre (✓ prueba).
+  - A las fotos se les quitan ubicación y demás metadatos (✓ prueba).
+  - Se guardan con nombre aleatorio fuera de la carpeta pública y solo se sirven si están aprobadas (✓ prueba).
+  - Límites de tamaño por archivo y por envío.
+- **Escaneos de las placas**: solo se cuenta el número por día, sin nada que identifique a quien escanea.
+- **Micrófono**: solo lo puede pedir el propio panel (modo entrevista); en el resto de páginas del servidor está bloqueado.
+
 ## Registro de actividad
 
 Cada entrada, intento fallido, alta, aprobación, rechazo y cambio queda apuntado con fecha, persona e IP. Dirección lo ve en el panel («Actividad»), con las alertas resaltadas, y no se puede borrar desde la web.

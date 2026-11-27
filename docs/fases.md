@@ -45,26 +45,39 @@ Decisiones de partida (27/11/2026):
 - **Avisos a la entidad** al publicar, no publicar, retirar, aprobar o rechazar cambios y verificar. Les llega por correo y queda en su panel («Avisos»). Dirección ve confirmado a quién se ha avisado.
 - **Cartel del evento** (opcional) que sube la entidad y se aprueba con el evento. Si no hay cartel, la app pone una ilustración según la categoría. No se cobra nada a las asociaciones.
 
-## Pedido, pendiente de hacer
+- **Inscripciones** ✅
+  - La entidad decide si hay que apuntarse, cuántas plazas hay y hasta cuándo.
+  - La gente se apunta sin cuenta.
+  - Lista de espera automática.
+  - La entidad tiene la lista de apuntados, la descarga para Excel y puede escribir a todos.
+  - Los datos se borran solos un mes después del evento.
+- **Fotos de cómo fue** ✅: las entidades suben fotos de sus eventos y dirección las aprueba una a una. En la app se ven en la ficha y en «Cómo fue» de Inicio.
+- **Fidelización, primeros pasos** ✅
+  - «Tus planes» en Inicio.
+  - Seguir asociaciones, con filtro «De quien sigo».
+  - Contador de placas QR descubiertas, primer paso del «pasaporte».
 
-- **Fotos de los eventos** (después de celebrarse): galería que suben las entidades y que dirección aprueba foto a foto antes de que se vea.
-- **Reservas e inscripciones**: la entidad decide si su evento necesita apuntarse, con plazas, lista de espera y lista de inscritos. Ver la propuesta en la conversación del 28/11/2026.
-- **Fidelización** de quien usa la app: avisos del finde, guardados y recordatorios, historias, yincana, sellos o «pasaporte» de eventos.
+## Fase 2 · Historias del pueblo y QR ✅ hecha
 
-## Fase 2 · Historias del pueblo y QR
+- Formulario «Cuéntanos una historia» en la app:
+  - Escrita o **grabada con el móvil**.
+  - Hasta 4 fotos, época, lugar y firma con nombre o como «un vecino o vecina».
+  - Cuatro permisos obligatorios; queda guardado qué aceptó cada persona y con qué versión del texto.
+- **Modo entrevista** en el panel: grabar desde el propio panel o subir audio y fotos.
+- Moderación solo de dirección:
+  - Corregir el texto y elegir qué fotos y audio se publican.
+  - Publicar, no publicar, retirar y borrar para siempre (también los archivos).
+- **Un QR por lugar**, con su dirección fija. La página del QR abre sin instalar nada y cuenta los escaneos (solo el número por día).
+- **Placa A5 para imprimir** y QR en SVG para la imprenta.
+  - Aviso mientras la dirección sea provisional: **no imprimir placas definitivas sin dominio propio**.
+- Archivos: tipo comprobado por sus bytes, fotos sin metadatos, guardados fuera de lo público, audio con rangos para iPhone.
 
-- Formulario «Cuéntanos una historia» con texto, **audio** y fotos antiguas, lugar y época.
-- Consentimiento y cesión de derechos claros. Opción de firmar con nombre o como «un vecino».
-- «Modo entrevista»: para grabar a personas mayores en la biblioteca o en el centro de mayores desde el móvil de quien entrevista.
-- Moderación solo de dirección: editar, publicar y despublicar.
-- **Un QR por lugar**, no por historia. La placa no se reimprime aunque crezcan las historias.
-- Página web ligera que abre al escanear el QR sin instalar nada. Si se tiene la app, abre la app.
-- Hoja para imprimir placas (PDF) y contador anónimo de escaneos por lugar, útil para presentar el proyecto al Ayuntamiento o a un comercio.
-- Seguridad de archivos:
-  - Límite de tamaño.
-  - Las imágenes se vuelven a codificar y se les quitan los datos de ubicación.
-  - Los archivos se guardan fuera de la carpeta pública.
-- Pendiente de decidir: placas con el Ayuntamiento o, si no colabora, en comercios. Un comercio con placa sería un «Punto de historia» en la app.
+**Pendiente de decidir:** placas con el Ayuntamiento o, si no colabora, en comercios. Un comercio con placa sería un «Punto de historia» en la app.
+
+**Ideas para seguir:**
+- Recompensas del «pasaporte» con comercios patrocinadores (fase 3).
+- Recordatorios y «este finde en Valverde» con notificaciones (fase 4: necesitan la app nativa).
+- Que una entidad pueda añadir más datos a su ficha pública (logo, redes).
 
 ## Fase 3 · Comercios y anuncios
 

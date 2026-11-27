@@ -33,6 +33,28 @@ El número junto a «Pendientes» dice cuánto hay por revisar. Además, a direc
 
 La letra del CIF ya da una pista (G asociación, P ayuntamiento, R hermandad…), pero no basta. Si el correo está «sin confirmar», hay que esperar.
 
+## Historias del pueblo
+
+- **Historias**: llegan desde la app («Cuéntanos una historia») y salen en «Pendientes».
+  - Al abrir una puedes corregir el texto y la firma, y elegir qué fotos y audio se publican (cada uno con su interruptor y pie de foto).
+  - A la derecha ves quién la manda (nunca se publica) y qué permisos aceptó.
+  - Si alguien pide quitar su historia: «Retirar» y después «Borrar para siempre», que elimina también fotos y audio.
+- **Nueva entrevista**: para las historias que recogéis en persona.
+  - Se graba con el móvil desde el propio panel; mejor en un sitio sin ruido.
+  - Antes, la persona tiene que aceptar los permisos.
+- **Lugares y placas**: cada lugar tiene su placa con QR.
+  - «Placa» enseña la hoja A5 para imprimir y el QR en SVG para la imprenta.
+  - La lista muestra cuántas veces se ha escaneado cada placa en los últimos 30 días.
+  - **No imprimáis placas definitivas hasta tener dominio**: el panel avisa mientras la dirección sea provisional.
+
+## Fotos de cómo fue
+
+Las entidades suben fotos de sus eventos ya publicados. En «Pendientes», marca ✓ o ✕ en cada foto y guarda. «Publicar todas» publica las que no hayas marcado con ✕. La entidad recibe un aviso con el resultado. Desde la ficha del evento puedes quitar una foto ya publicada.
+
+## Inscripciones
+
+Si un evento pide inscripción, en su ficha ves la lista de apuntados en solo lectura. La gestiona la entidad: descargar la lista, escribir a todos, cancelar a alguien. Los datos se borran solos un mes después del evento.
+
 ## Otras pantallas
 
 - **Eventos**: todos, con filtros y buscador. «+ Meter un evento» publica directamente lo que llega por otros sitios (un cartel, un aviso del Ayuntamiento). A nombre de una entidad con cuenta, o de «Valverde Cuenta» escribiendo quién organiza.

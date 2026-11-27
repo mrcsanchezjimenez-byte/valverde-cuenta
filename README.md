@@ -4,9 +4,18 @@ El sitio donde están todos los eventos de Valverde del Camino y los pueblos de 
 Proyecto independiente que llevan Pilar y Marcos.
 
 - **Agenda**: asociaciones, hermandades, AMPAs, clubes e instituciones envían sus eventos gratis; dirección los revisa antes de publicarlos.
-- **Comercios y empresas**: se anuncian pagando (fase 3).
-- **Historias del pueblo**: recogidas de la gente y leídas en QR repartidos por el pueblo (fase 2).
+- **Inscripciones** a los eventos que lo piden, con plazas y lista de espera.
+- **Fotos de cómo fue** cada evento, aprobadas por dirección.
+- **Historias del pueblo**: la gente las cuenta (escritas o grabadas) y se leen en placas con QR repartidas por el pueblo.
 - **Yincana cultural** por el casco urbano.
+- **Comercios y empresas**: se anuncian pagando (fase 3).
+
+### Demostración para enseñar
+
+- App: https://mrcsanchezjimenez-byte.github.io/valverde-cuenta/
+- Panel: https://mrcsanchezjimenez-byte.github.io/valverde-cuenta/gestion/ (botones para entrar como dirección o como asociación).
+
+Funciona sin servidor: los datos son ficticios y se guardan solo en el navegador de quien la prueba. En local: `npm run dev -- --mode demo` y `npx vite --config vite.gestion.config.ts --mode demo --port 5276`.
 
 Plan por fases: [docs/fases.md](docs/fases.md) · Seguridad: [docs/seguridad.md](docs/seguridad.md) · Manual del panel: [docs/gestion.md](docs/gestion.md)
 
