@@ -93,7 +93,10 @@ export function BloqueInscripcion({ evento }: { evento: Evento }) {
       .then((r) => {
         if (r.estado !== mia.estado) guardarInscripcion({ ...mia, estado: r.estado })
       })
-      .catch(() => undefined)
+      // Si ya no existe (por ejemplo, el evento se borró), se olvida; si es falta de cobertura, se deja como estaba.
+      .catch((e) => {
+        if (/No encontramos/.test((e as Error).message)) olvidarInscripcion(mia.codigo)
+      })
   }, [mia])
 
   if (mia) {

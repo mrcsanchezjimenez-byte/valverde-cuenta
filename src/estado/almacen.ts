@@ -52,3 +52,18 @@ export function guardarInscripcion(i: InscripcionGuardada) {
 export function olvidarInscripcion(codigo: string) {
   inscripciones.poner(inscripciones.obtener().filter((x) => x.codigo !== codigo))
 }
+
+/** Asociaciones que sigue esta persona (por su nombre, tal y como sale en la agenda). */
+const seguidos = crearAlmacen<string[]>('vc.seguidos', [])
+export const useSeguidos = seguidos.useValor
+export function alternarSeguido(organizador: string) {
+  const actual = seguidos.obtener()
+  seguidos.poner(actual.includes(organizador) ? actual.filter((x) => x !== organizador) : [...actual, organizador])
+}
+
+/** Placas QR que ha escaneado en el pueblo: el primer paso del «pasaporte». */
+const descubiertos = crearAlmacen<string[]>('vc.lugares', [])
+export const useLugaresDescubiertos = descubiertos.useValor
+export function descubrirLugar(slug: string) {
+  if (!descubiertos.obtener().includes(slug)) descubiertos.poner([...descubiertos.obtener(), slug])
+}

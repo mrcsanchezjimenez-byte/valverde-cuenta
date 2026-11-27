@@ -8,7 +8,7 @@ import { claveDia, esEsteFinde, esHoy, fecha, fechaLarga, mesLargo } from '../da
 import { AVISO_AGENDA } from '../../compartido/tipos.ts'
 import { URL_GESTION, useAgenda } from '../datos/repositorio'
 import type { Evento } from '../datos/tipos'
-import { useGuardados } from '../estado/almacen'
+import { useGuardados, useSeguidos } from '../estado/almacen'
 import { Icono } from '../componentes/Iconos'
 
 const FILTROS = [
@@ -19,10 +19,11 @@ const FILTROS = [
   { id: 'ninos', nombre: 'Niños' },
   { id: 'alrededores', nombre: 'Alrededores' },
   { id: 'guardados', nombre: 'Guardados' },
+  { id: 'sigo', nombre: 'De quien sigo' },
   ...CATEGORIAS.filter((c) => c.id !== 'ninos').map((c) => ({ id: c.id as string, nombre: c.nombre })),
 ]
 
-function cumple(e: Evento, filtro: string, guardados: string[]) {
+function cumple(e: Evento, filtro: string, guardados: string[], seguidos: string[] = []) {
   switch (filtro) {
     case 'todo': return true
     case 'hoy': return esHoy(e)
@@ -31,6 +32,7 @@ function cumple(e: Evento, filtro: string, guardados: string[]) {
     case 'ninos': return Boolean(e.paraNinos) || e.categoria === 'ninos'
     case 'alrededores': return e.zona === 'alrededores'
     case 'guardados': return guardados.includes(e.id)
+    case 'sigo': return seguidos.includes(e.organizador)
     default: return e.categoria === filtro
   }
 }
@@ -57,7 +59,7 @@ function Lista({ eventos, filtro, estado, reintentar }: { eventos: Evento[]; fil
   if (!eventos.length) {
     return (
       <div className="vacio">
-        <p>{filtro === 'guardados' ? 'Aún no has guardado ningún evento. Pulsa el corazón en su ficha.' : filtro === 'todo' ? 'Aún no hay eventos en la agenda.' : 'No hay eventos con este filtro.'}</p>
+        <p>{filtro === 'guardados' ? 'Aún no has guardado ningún evento. Pulsa el corazón en su ficha.' : filtro === 'sigo' ? 'Aún no sigues a ninguna asociación, o no tienen nada próximo. Pulsa «Seguir» en la ficha de un evento.' : filtro === 'todo' ? 'Aún no hay eventos en la agenda.' : 'No hay eventos con este filtro.'}</p>
         <Link to="/agenda" className="boton boton-suave">Ver toda la agenda</Link>
       </div>
     )
@@ -129,6 +131,7 @@ function Calendario({ eventos }: { eventos: Evento[] }) {
 export function Agenda() {
   const [params, setParams] = useSearchParams()
   const guardados = useGuardados()
+  const seguidos = useSeguidos()
   const vista = params.get('v') ?? 'lista'
   const filtro = params.get('f') ?? 'todo'
 
@@ -139,8 +142,8 @@ export function Agenda() {
   }
 
   const agenda = useAgenda()
-  const proximos = agenda.proximos.filter((e) => cumple(e, filtro, guardados))
-  const todos = agenda.todos.filter((e) => cumple(e, filtro, guardados))
+  const proximos = agenda.proximos.filter((e) => cumple(e, filtro, guardados, seguidos))
+  const todos = agenda.todos.filter((e) => cumple(e, filtro, guardados, seguidos))
 
   return (
     <div className={vista === 'mapa' ? 'pantalla pantalla-con-mapa' : 'pantalla'}>

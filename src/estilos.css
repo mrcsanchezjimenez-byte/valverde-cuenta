@@ -367,3 +367,25 @@ img.miniatura { object-fit: cover; background: var(--superficie); }
 .fotos-elegidas span { position: relative; }
 .fotos-elegidas img { width: 76px; height: 76px; object-fit: cover; border-radius: 10px; display: block; }
 .fotos-elegidas button { position: absolute; top: -6px; right: -6px; width: 26px; height: 26px; border-radius: 50%; background: var(--tinta); color: #fff; display: grid; place-items: center; }
+
+/* ——— Fidelización: tus planes, seguir, placas descubiertas ——— */
+.tus-planes { display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 20px; background: var(--primario-claro); }
+.tus-planes h2 { font: 700 18px var(--titulos); }
+.plan { display: flex; align-items: center; gap: 12px; padding: 8px 10px; border-radius: 14px; background: var(--tarjeta); }
+.plan > span:nth-child(2) { flex: 1; min-width: 0; }
+.plan b { display: block; font-size: 14.5px; font-weight: 650; line-height: 1.25; }
+.plan small { display: block; color: var(--suave); font-size: 12.5px; }
+.plan-fecha { flex: none; width: 44px; height: 44px; border-radius: 10px; background: var(--primario); color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; }
+.plan-fecha small { color: #CFE3D7; font-size: 9.5px; font-weight: 700; }
+.plan-fecha b { font: 700 17px var(--titulos); color: #fff; }
+.seguir { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: var(--radio); border: 1px solid var(--borde); background: var(--tarjeta); }
+.seguir > span { flex: 1; min-width: 0; }
+.seguir small { display: block; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--cuero); }
+.seguir b { display: block; font-weight: 650; }
+.seguir .boton { flex: none; padding: 0 16px; }
+.siguiendo { color: var(--primario) !important; }
+.pasaporte { display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: var(--radio); background: var(--oro-claro); }
+.pasaporte b { display: block; }
+.pasaporte small { display: block; color: #5E4610; font-size: 13.5px; }
+.pasaporte-barra { height: 10px; border-radius: 5px; background: rgb(255 255 255 / .7); overflow: hidden; }
+.pasaporte-barra span { display: block; height: 100%; border-radius: 5px; background: var(--oro); transition: width .4s; }

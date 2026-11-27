@@ -4,7 +4,7 @@ import { Icono } from '../componentes/Iconos'
 import { textoPrecio } from '../componentes/TarjetasEvento'
 import { fecha, fechaLarga, hora } from '../datos/fechas'
 import { MODO_DEMO, useEvento } from '../datos/repositorio'
-import { alternarGuardado, useGuardados } from '../estado/almacen'
+import { alternarGuardado, alternarSeguido, useGuardados, useSeguidos } from '../estado/almacen'
 import { AVISO_AGENDA } from '../../compartido/tipos.ts'
 import { Galeria } from '../componentes/Galeria'
 import { BloqueInscripcion } from '../componentes/Inscripcion'
@@ -97,6 +97,8 @@ export function FichaEvento() {
           </Link>
         )}
 
+        <SeguirOrganizador organizador={evento.organizador} />
+
         <p className="nota-legal">{AVISO_AGENDA.corto.replace('{organizador}', evento.organizador)}</p>
       </div>
 
@@ -107,6 +109,21 @@ export function FichaEvento() {
           </button>
         </div>
       )}
+    </div>
+  )
+}
+
+/** Seguir a quien organiza: sus eventos salen en «Tus planes» y en el filtro «De quien sigo». */
+function SeguirOrganizador({ organizador }: { organizador: string }) {
+  const seguidos = useSeguidos()
+  const sigo = seguidos.includes(organizador)
+  return (
+    <div className="seguir">
+      <span><small>Organiza</small><b>{organizador}</b></span>
+      <button className={sigo ? 'boton boton-suave boton-peq siguiendo' : 'boton boton-primario boton-peq'} aria-pressed={sigo}
+        onClick={() => alternarSeguido(organizador)}>
+        {sigo ? <><Icono n="check" tam={16} /> Siguiendo</> : <><Icono n="mas" tam={16} /> Seguir</>}
+      </button>
     </div>
   )
 }

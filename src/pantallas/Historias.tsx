@@ -5,6 +5,7 @@ import { Escena } from '../componentes/Escena'
 import { Galeria } from '../componentes/Galeria'
 import { Icono } from '../componentes/Iconos'
 import { cargarHistorias, cargarLugar, cargarLugares } from '../datos/repositorio'
+import { descubrirLugar, useLugaresDescubiertos } from '../estado/almacen'
 import { abrirIndicaciones, compartir } from '../nativo'
 
 /** Carga algo del servidor con estado de carga y error. */
@@ -57,6 +58,9 @@ export function Historias() {
   const historias = useDatos(cargarHistorias, [])
   const lugares = useDatos(cargarLugares, [])
   const conHistorias = (lugares.datos ?? []).filter((l) => l.historias > 0)
+  const descubiertos = useLugaresDescubiertos()
+  const total = lugares.datos?.length ?? 0
+  const hechos = (lugares.datos ?? []).filter((l) => descubiertos.includes(l.slug)).length
   return (
     <div className="pantalla">
       <header>
@@ -65,6 +69,13 @@ export function Historias() {
       </header>
       <p className="entradilla">Lo que cuentan los vecinos sobre calles, oficios y fiestas. Busca las placas con código QR por el pueblo.</p>
       <BotonContar />
+
+      {total > 0 && (
+        <div className="pasaporte">
+          <div><b>Placas descubiertas: {hechos} de {total}</b><small>{hechos === total ? '¡Las has encontrado todas!' : 'Busca las placas con código QR por el pueblo y escanéalas con la cámara.'}</small></div>
+          <div className="pasaporte-barra" role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={hechos}><span style={{ width: `${(hechos / total) * 100}%` }} /></div>
+        </div>
+      )}
 
       {!!conHistorias.length && (
         <>
@@ -147,6 +158,9 @@ export function LugarHistorias() {
   const [params] = useSearchParams()
   const qr = params.get('qr') === '1'
   const { datos: l, error, cargando } = useDatos(() => cargarLugar(slug, qr), [slug])
+  useEffect(() => {
+    if (qr && l) descubrirLugar(l.slug)
+  }, [qr, l])
   if (cargando && !l) return <div className="pantalla"><p className="suave">Cargando…</p></div>
   if (!l) {
     return (

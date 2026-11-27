@@ -5,12 +5,12 @@ import { HojaCompartir } from '../componentes/HojaCompartir'
 import { Icono } from '../componentes/Iconos'
 import { TarjetaGrande } from '../componentes/TarjetasEvento'
 import { CATEGORIAS } from '../../compartido/categorias.ts'
-import { esProximosDias, fecha } from '../datos/fechas'
+import { diaSemanaCorto, esProximosDias, fecha, hora } from '../datos/fechas'
 import type { Historia } from '../../compartido/tipos.ts'
 import { cargarHistorias, MODO_DEMO, URL_GESTION, useAgenda } from '../datos/repositorio'
 import { BotonContar, TarjetaHistoria } from './Historias'
 import { PARADAS, RUTA_MINUTOS } from '../datos/yincana'
-import { useCompletadas } from '../estado/almacen'
+import { useCompletadas, useGuardados, useMisInscripciones, useSeguidos } from '../estado/almacen'
 
 export function BannerYincana() {
   const completadas = useCompletadas()
@@ -38,6 +38,17 @@ export function BannerYincana() {
 export function Inicio() {
   const [compartiendo, setCompartiendo] = useState(false)
   const { proximos, todos, estado } = useAgenda()
+  const guardados = useGuardados()
+  const inscritos = useMisInscripciones()
+  const seguidos = useSeguidos()
+  // Tus planes: a lo que te has apuntado, lo que has guardado y lo nuevo de quien sigues.
+  const planes = proximos
+    .map((e) => ({
+      e,
+      motivo: inscritos.some((i) => i.evento === e.id && i.estado !== 'cancelada') ? 'Apuntado' : guardados.includes(e.id) ? 'Guardado' : seguidos.includes(e.organizador) ? 'Sigues a quien organiza' : '',
+    }))
+    .filter((p) => p.motivo)
+    .slice(0, 4)
   const [historias, setHistorias] = useState<Historia[]>([])
   useEffect(() => {
     cargarHistorias().then(setHistorias).catch(() => undefined)
@@ -66,6 +77,19 @@ export function Inicio() {
           <b>Probar el panel de gestión →</b>
           <span>Entra como dirección o como asociación, aprueba eventos y míralos aquí después.</span>
         </a>
+      )}
+
+      {!!planes.length && (
+        <section className="tus-planes">
+          <h2>Tus planes</h2>
+          {planes.map(({ e, motivo }) => (
+            <Link key={e.id} to={`/evento/${e.id}`} className="plan">
+              <span className="plan-fecha"><small>{diaSemanaCorto(fecha(e.inicio))}</small><b>{fecha(e.inicio).getDate()}</b></span>
+              <span><b>{e.titulo}</b><small>{hora(e.inicio)} · {motivo}</small></span>
+              <Icono n="adelante" tam={16} />
+            </Link>
+          ))}
+        </section>
       )}
 
       <div className="titulo-seccion">
