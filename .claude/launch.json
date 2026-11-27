@@ -4,23 +4,50 @@
     {
       "name": "servidor",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev:servidor"],
+      "runtimeArgs": [
+        "run",
+        "dev:servidor"
+      ],
       "port": 8787,
       "url": "http://localhost:8787"
     },
     {
       "name": "gestion",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev:gestion"],
+      "runtimeArgs": [
+        "run",
+        "dev:gestion"
+      ],
       "port": 5274,
       "url": "http://localhost:5274"
     },
     {
       "name": "valverde-cuenta",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--", "--port", "5273", "--strictPort"],
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5273",
+        "--strictPort"
+      ],
       "port": 5273,
       "url": "http://localhost:5273"
+    },
+    {
+      "name": "demo",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "preview",
+        "--",
+        "--port",
+        "5275",
+        "--strictPort"
+      ],
+      "port": 5275,
+      "url": "http://localhost:5275"
     }
   ]
 }

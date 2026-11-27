@@ -27,10 +27,13 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      # Versión de demostración: sin servidor, con los eventos de ejemplo.
+      # Versión de demostración: sin servidor, con datos ficticios guardados en el navegador.
+      # Incluye el panel de gestión en /valverde-cuenta/gestion/ para poder enseñarlo.
       - run: npm run build
         env:
           VITE_DEMO: '1'
+          VITE_BASE_GESTION: /valverde-cuenta/gestion/
+          VITE_SALIDA_GESTION: ../dist/gestion
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

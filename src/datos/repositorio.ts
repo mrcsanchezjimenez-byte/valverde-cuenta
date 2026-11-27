@@ -14,7 +14,7 @@ export const MODO_DEMO = import.meta.env.VITE_DEMO === '1'
 /** En local el propio Vite reenvía /api al servidor. En la app nativa será la dirección pública. */
 const API = import.meta.env.VITE_API ?? ''
 /** Panel donde las entidades publican sus eventos. */
-export const URL_GESTION = import.meta.env.VITE_URL_GESTION ?? 'http://localhost:5274/gestion/'
+export const URL_GESTION = import.meta.env.VITE_URL_GESTION ?? (MODO_DEMO ? './gestion/' : 'http://localhost:5274/gestion/')
 
 const CLAVE_COPIA = 'vc.agenda'
 const REFRESCO_MS = 5 * 60_000
@@ -47,8 +47,10 @@ const esEvento = (e: unknown): e is Evento => {
 let enCurso: Promise<void> | null = null
 async function descargar() {
   if (MODO_DEMO) {
-    const { EVENTOS } = await import('../../compartido/ejemplo.ts')
-    poner({ eventos: ordenar(EVENTOS), estado: 'listo' })
+    // Los mismos datos que el panel de la demo: lo que se aprueba allí sale aquí.
+    const { eventosPublicosDemo } = await import('../../demo/almacen.ts')
+    ultimaDescarga = Date.now()
+    poner({ eventos: ordenar(eventosPublicosDemo()), estado: 'listo' })
     return
   }
   enCurso ??= (async () => {
@@ -80,14 +82,14 @@ function suscribir(o: () => void) {
 /** Vuelve a pedir la agenda al abrir la app y al volver a ella tras un rato. */
 if (typeof document !== 'undefined') {
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && Date.now() - ultimaDescarga > REFRESCO_MS) void descargar()
+    if (document.visibilityState === 'visible' && (MODO_DEMO || Date.now() - ultimaDescarga > REFRESCO_MS)) void descargar()
   })
 }
 
 export function useAgenda() {
   const a = useSyncExternalStore(suscribir, () => agenda)
   useEffect(() => {
-    if (!ultimaDescarga || Date.now() - ultimaDescarga > REFRESCO_MS) void descargar()
+    if (MODO_DEMO || !ultimaDescarga || Date.now() - ultimaDescarga > REFRESCO_MS) void descargar()
   }, [])
   const proximos = useMemo(() => a.eventos.filter((e) => noHaTerminado(e)), [a.eventos])
   return {

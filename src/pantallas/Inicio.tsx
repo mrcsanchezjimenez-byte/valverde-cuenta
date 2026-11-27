@@ -6,7 +6,7 @@ import { Icono } from '../componentes/Iconos'
 import { TarjetaGrande } from '../componentes/TarjetasEvento'
 import { CATEGORIAS } from '../../compartido/categorias.ts'
 import { esProximosDias } from '../datos/fechas'
-import { useAgenda } from '../datos/repositorio'
+import { MODO_DEMO, URL_GESTION, useAgenda } from '../datos/repositorio'
 import { PARADAS, RUTA_MINUTOS } from '../datos/yincana'
 import { useCompletadas } from '../estado/almacen'
 
@@ -53,6 +53,12 @@ export function Inicio() {
       </header>
 
       <AvisoEjemplo>Los eventos y relatos son de ejemplo.</AvisoEjemplo>
+      {MODO_DEMO && (
+        <a className="publica-evento" href={URL_GESTION}>
+          <b>Probar el panel de gestión →</b>
+          <span>Entra como dirección o como asociación, aprueba eventos y míralos aquí después.</span>
+        </a>
+      )}
 
       <div className="titulo-seccion">
         <h2>{hayEstaSemana ? 'Esta semana en Valverde' : 'Próximamente en Valverde'}</h2>

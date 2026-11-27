@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { HashRouter, NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { FranjaDemo } from './componentes/Demo.tsx'
 import { useCarga } from './componentes/piezas.tsx'
 import { ActivarDobleFactor, AltaEntidad, Codigo, Entrar, Olvide, Restablecer, Verificar } from './pantallas/Acceso.tsx'
 import { MiCuenta } from './pantallas/Cuenta.tsx'
@@ -100,6 +101,7 @@ export default function App() {
   return (
     <HashRouter>
       <ProveedorSesion>
+        <FranjaDemo />
         <Puerta />
       </ProveedorSesion>
     </HashRouter>

@@ -10,7 +10,22 @@ export class ErrorApi extends Error {
   }
 }
 
+/** Demostración sin servidor (GitHub Pages): las llamadas las responde demo.ts en el navegador. */
+export const MODO_DEMO = import.meta.env.VITE_DEMO === '1'
+
 export async function api<T = unknown>(metodo: 'GET' | 'POST' | 'PUT' | 'DELETE', ruta: string, cuerpo?: unknown): Promise<T> {
+  if (MODO_DEMO) {
+    const { apiDemo, FalloDemo } = await import('./demo.ts')
+    try {
+      return (await apiDemo(metodo, ruta, cuerpo)) as T
+    } catch (e) {
+      if (e instanceof FalloDemo) {
+        if (e.estado === 401) window.dispatchEvent(new Event('vc-sesion-perdida'))
+        throw new ErrorApi(e.estado, e.message)
+      }
+      throw e
+    }
+  }
   let r: Response
   try {
     r = await fetch(`/api${ruta}`, {

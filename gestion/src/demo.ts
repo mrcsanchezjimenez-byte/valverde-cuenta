@@ -1,0 +1,478 @@
+/**
+ * Servidor de mentira para la demostración (VITE_DEMO=1): responde a las mismas rutas que el
+ * de verdad, pero con los datos del navegador (demo/almacen.ts). Las reglas importantes se imitan
+ * (quién puede hacer qué, estados de los eventos); la seguridad real está en el servidor.
+ */
+import { LETRAS_GRATIS, motivoCifNoGratis, normalizarCif } from '../../compartido/cif.ts'
+import { escenaPorDefecto } from '../../compartido/categorias.ts'
+import type { DatosEvento, EstadoEntidad, EstadoEvento } from '../../compartido/tipos.ts'
+import {
+  CUENTAS_DEMO, conDistancia, guardarAlmacen, leerAlmacen, type AlmacenDemo, type EntidadDemo, type EventoDemo, type UsuarioDemo,
+} from '../../demo/almacen.ts'
+
+class FalloDemo extends Error {
+  estado: number
+  constructor(estado: number, mensaje: string) {
+    super(mensaje)
+    this.estado = estado
+  }
+}
+
+const fallo = (estado: number, mensaje: string) => new FalloDemo(estado, mensaje)
+const ahora = () => new Date().toISOString().replace(/\.\d+Z$/, 'Z')
+type Cuerpo = Record<string, unknown>
+
+function apuntar(a: AlmacenDemo, usuarioId: number | null, accion: string, objeto = '', detalle = '') {
+  a.registro.unshift({ id: a.siguienteId++, fecha: ahora(), accion, objeto, detalle, ip: 'demostración', usuarioId })
+  a.registro = a.registro.slice(0, 300)
+}
+
+function yo(a: AlmacenDemo, { aMedias = false } = {}) {
+  if (!a.sesion) throw fallo(401, 'Tienes que entrar con tu cuenta.')
+  if (!a.sesion.segundoFactor && !aMedias) throw fallo(401, 'Falta el código de verificación.')
+  const u = a.usuarios.find((x) => x.id === a.sesion!.usuarioId)
+  if (!u) throw fallo(401, 'Tienes que entrar con tu cuenta.')
+  return u
+}
+
+function usuarioPublico(a: AlmacenDemo, u: UsuarioDemo) {
+  const e = a.entidades.find((x) => x.id === u.entidadId)
+  return {
+    id: u.id, email: u.email, nombre: u.nombre, rol: u.rol, totpActivo: u.totpActivo,
+    entidadId: u.entidadId, entidadNombre: e?.nombre ?? null, entidadEstado: e?.estado ?? null,
+  }
+}
+
+const falta = (u: UsuarioDemo, segundoFactor: boolean) =>
+  segundoFactor ? null : u.totpActivo ? 'codigo' : u.rol === 'direccion' ? 'alta2fa' : null
+
+const aGestion = (a: AlmacenDemo, e: EventoDemo) => ({ ...e, entidadNombre: a.entidades.find((x) => x.id === e.entidadId)?.nombre ?? '' })
+
+function aEntidad(a: AlmacenDemo, e: EntidadDemo) {
+  const u = a.usuarios.find((x) => x.entidadId === e.id)
+  return {
+    ...e, municipio: a.municipios.find((m) => m.id === e.municipioId)?.nombre ?? '',
+    tipoCif: e.cif ? (LETRAS_GRATIS[e.cif[0]] ?? 'No admitido') : null,
+    email: u?.email ?? null, emailVerificado: true, eventos: a.eventos.filter((x) => x.entidadId === e.id).length,
+  }
+}
+
+function evento(a: AlmacenDemo, id: number, entidadId?: number) {
+  const e = a.eventos.find((x) => x.id === id)
+  if (!e || (entidadId !== undefined && e.entidadId !== entidadId)) throw fallo(404, 'Ese evento no existe.')
+  return e
+}
+
+/** Comprobaciones básicas del evento, con los mismos mensajes que el servidor. */
+function comprobarEvento(a: AlmacenDemo, d: DatosEvento, enviar: boolean) {
+  if (!d.titulo || d.titulo.trim().length < 3) throw fallo(400, 'Título: escribe al menos 3 caracteres.')
+  if (!d.resumen || d.resumen.trim().length < 10) throw fallo(400, 'Resumen: escribe al menos 10 caracteres.')
+  if (!d.descripcion || d.descripcion.trim().length < 20) throw fallo(400, 'Descripción: escribe al menos 20 caracteres.')
+  if (!d.inicio || !d.fin) throw fallo(400, 'Fecha y hora no válidas.')
+  if (d.fin <= d.inicio) throw fallo(400, 'El final tiene que ser después del inicio.')
+  if (!d.lugar || d.lugar.trim().length < 2) throw fallo(400, 'Lugar: escribe al menos 2 caracteres.')
+  if (!a.municipios.find((m) => m.id === d.municipioId && m.activo)) throw fallo(400, 'Ese municipio no está en la zona de la agenda.')
+  if (d.enlace && !/^https?:\/\//i.test(d.enlace)) throw fallo(400, 'El enlace debe empezar por https://')
+  if (enviar && d.fin <= new Date().toISOString().slice(0, 16)) throw fallo(400, 'Ese evento ya ha terminado.')
+}
+
+const datos = (d: DatosEvento): DatosEvento => ({
+  titulo: d.titulo.trim(), resumen: d.resumen.trim(), descripcion: d.descripcion.trim(), inicio: d.inicio, fin: d.fin,
+  lugar: d.lugar.trim(), municipioId: d.municipioId, lat: d.lat, lng: d.lng, precio: d.precio || null,
+  publico: d.publico.trim(), categoria: d.categoria, paraNinos: d.paraNinos, enlace: d.enlace.trim(),
+})
+
+type Manejador = (a: AlmacenDemo, p: string[], cuerpo: Cuerpo, consulta: URLSearchParams) => unknown
+const RUTAS: [string, RegExp, Manejador][] = []
+const ruta = (metodo: string, patron: string, fn: Manejador) =>
+  RUTAS.push([metodo, new RegExp(`^${patron.replace(/:\w+/g, '([^/]+)')}$`), fn])
+
+// ——— Cuenta ———
+
+ruta('GET', '/cuenta/yo', (a) => {
+  const u = yo(a, { aMedias: true })
+  return { usuario: usuarioPublico(a, u), falta: falta(u, a.sesion!.segundoFactor) }
+})
+
+ruta('POST', '/cuenta/entrar', (a, _, c) => {
+  const u = a.usuarios.find((x) => x.email === String(c.email ?? '').trim().toLowerCase())
+  if (!u || u.clave !== c.clave) throw fallo(401, 'Correo o contraseña incorrectos.')
+  const completa = u.rol === 'entidad' && !u.totpActivo
+  a.sesion = { usuarioId: u.id, segundoFactor: completa }
+  apuntar(a, u.id, 'entrar')
+  return { falta: falta(u, completa) }
+})
+
+ruta('POST', '/cuenta/codigo', (a, _, c) => {
+  const u = yo(a, { aMedias: true })
+  if (!/^\d{6}$/.test(String(c.codigo))) throw fallo(400, 'El código son 6 cifras.')
+  if (c.codigo !== CUENTAS_DEMO.direccion.codigo) throw fallo(400, `El código no es correcto. En la demostración es ${CUENTAS_DEMO.direccion.codigo}.`)
+  a.sesion!.segundoFactor = true
+  apuntar(a, u.id, 'entrar')
+  return { falta: null }
+})
+
+ruta('POST', '/cuenta/salir', (a) => {
+  if (a.sesion) apuntar(a, a.sesion.usuarioId, 'salir')
+  a.sesion = null
+  return { ok: true }
+})
+
+ruta('POST', '/cuenta/2fa/preparar', (a) => {
+  const u = yo(a, { aMedias: true })
+  const secreto = 'DEMODEMODEMODEMODEMODEMODEMODEMO'
+  return { secreto, uri: `otpauth://totp/${encodeURIComponent(`Valverde Cuenta (demo):${u.email}`)}?secret=${secreto}&issuer=Valverde%20Cuenta%20demo` }
+})
+
+ruta('POST', '/cuenta/2fa/activar', (a, _, c) => {
+  const u = yo(a, { aMedias: true })
+  if (!/^\d{6}$/.test(String(c.codigo))) throw fallo(400, 'El código son 6 cifras.')
+  u.totpActivo = true
+  a.sesion!.segundoFactor = true
+  apuntar(a, u.id, '2fa_activado')
+  return { falta: null }
+})
+
+ruta('POST', '/cuenta/2fa/quitar', (a) => {
+  const u = yo(a)
+  u.totpActivo = false
+  apuntar(a, u.id, '2fa_quitado')
+  return { ok: true }
+})
+
+ruta('POST', '/cuenta/clave', (a, _, c) => {
+  const u = yo(a)
+  if (c.actual !== u.clave) throw fallo(400, 'La contraseña actual no es correcta.')
+  if (String(c.nueva ?? '').length < 12) throw fallo(400, 'La contraseña debe tener al menos 12 caracteres.')
+  u.clave = String(c.nueva)
+  apuntar(a, u.id, 'clave_cambiada')
+  return { ok: true }
+})
+
+ruta('POST', '/cuenta/alta', (a, _, c) => {
+  const cif = normalizarCif(String(c.cif ?? ''))
+  const motivo = motivoCifNoGratis(cif)
+  if (motivo) throw fallo(400, motivo)
+  const email = String(c.email ?? '').trim().toLowerCase()
+  if (a.usuarios.some((u) => u.email === email)) throw fallo(409, 'Ya hay una cuenta con ese correo.')
+  if (a.entidades.some((e) => e.cif === cif)) throw fallo(409, 'Esta entidad ya tiene cuenta.')
+  if (String(c.clave ?? '').length < 12) throw fallo(400, 'La contraseña debe tener al menos 12 caracteres.')
+  const entidad: EntidadDemo = {
+    id: a.siguienteId++, nombre: String(c.nombre), tipo: String(c.tipo), cif, municipioId: Number(c.municipioId),
+    personaContacto: String(c.personaContacto), telefono: String(c.telefono), web: String(c.web ?? ''), estado: 'pendiente',
+    motivo: null, nota: '', interna: false, creado: ahora(), revisado: null,
+  }
+  a.entidades.push(entidad)
+  // En la demo no hay correos: la cuenta queda con el correo ya confirmado.
+  a.usuarios.push({ id: a.siguienteId++, email, clave: String(c.clave), nombre: entidad.personaContacto, rol: 'entidad', entidadId: entidad.id, totpActivo: false })
+  apuntar(a, null, 'alta_entidad', `entidad:${cif}`, entidad.nombre)
+  return { ok: true }
+})
+
+ruta('POST', '/cuenta/verificar', () => ({ ok: true }))
+ruta('POST', '/cuenta/olvide', () => ({ ok: true }))
+ruta('POST', '/cuenta/restablecer', () => {
+  throw fallo(400, 'En la demostración no hay correos ni enlaces. Las contraseñas se ven en la pantalla de entrada.')
+})
+
+// ——— Municipios ———
+
+ruta('GET', '/publico/municipios', (a) => a.municipios.filter((m) => m.activo).map(conDistancia))
+ruta('GET', '/municipios/todos', (a) => a.municipios.map(conDistancia))
+
+// ——— Entidad ———
+
+function entidadDe(a: AlmacenDemo) {
+  const u = yo(a)
+  if (u.rol !== 'entidad') throw fallo(403, 'No tienes permiso para esto.')
+  const e = a.entidades.find((x) => x.id === u.entidadId)!
+  return { u, e }
+}
+
+function exigirVerificada(e: EntidadDemo) {
+  if (e.estado !== 'verificada') {
+    throw fallo(403, e.estado === 'pendiente'
+      ? 'Estamos revisando los datos de vuestra entidad. Podéis preparar borradores mientras tanto.'
+      : 'Vuestra entidad no puede publicar eventos ahora mismo.')
+  }
+}
+
+ruta('GET', '/entidad/eventos', (a) => {
+  const { e } = entidadDe(a)
+  return a.eventos.filter((x) => x.entidadId === e.id).map((x) => aGestion(a, x)).reverse()
+})
+
+ruta('GET', '/entidad/eventos/(\\d+)', (a, [id]) => aGestion(a, evento(a, Number(id), entidadDe(a).e.id)))
+
+ruta('POST', '/entidad/eventos', (a, _, c) => {
+  const { u, e } = entidadDe(a)
+  const d = c.evento as DatosEvento
+  const enviar = Boolean(c.enviar)
+  comprobarEvento(a, d, enviar)
+  if (enviar) {
+    exigirVerificada(e)
+    if (!c.declaracion) throw fallo(400, 'Marca la casilla de la declaración para enviarlo.')
+  }
+  const t = ahora()
+  const nuevo: EventoDemo = {
+    ...datos(d), id: a.siguienteId++, slug: `demo-${a.siguienteId}`, estado: enviar ? 'pendiente' : 'borrador', entidadId: e.id,
+    organizador: null, escena: escenaPorDefecto(d.categoria), enlazaYincana: false, motivo: null, cambios: null,
+    creado: t, actualizado: t, enviado: enviar ? t : null,
+  }
+  a.eventos.push(nuevo)
+  apuntar(a, u.id, enviar ? 'evento_enviado' : 'evento_borrador', `evento:${nuevo.id}`, nuevo.titulo)
+  return { id: nuevo.id }
+})
+
+ruta('PUT', '/entidad/eventos/(\\d+)', (a, [id], c) => {
+  const { u, e } = entidadDe(a)
+  const ev = evento(a, Number(id), e.id)
+  const d = c.evento as DatosEvento
+  const enviar = Boolean(c.enviar)
+  if (ev.estado === 'publicado') {
+    exigirVerificada(e)
+    if (!c.declaracion) throw fallo(400, 'Marca la casilla de la declaración para enviar los cambios.')
+    comprobarEvento(a, d, true)
+    ev.cambios = datos(d)
+    ev.actualizado = ahora()
+    apuntar(a, u.id, 'cambios_enviados', `evento:${ev.id}`, d.titulo)
+    return { id: ev.id, estado: ev.estado }
+  }
+  if (!['borrador', 'rechazado', 'pendiente'].includes(ev.estado)) throw fallo(409, 'Este evento ya no se puede cambiar.')
+  const estado: EstadoEvento = enviar || ev.estado === 'pendiente' ? 'pendiente' : 'borrador'
+  comprobarEvento(a, d, estado === 'pendiente')
+  if (estado === 'pendiente') {
+    exigirVerificada(e)
+    if (!c.declaracion) throw fallo(400, 'Marca la casilla de la declaración para enviarlo.')
+  }
+  Object.assign(ev, datos(d), { estado, actualizado: ahora(), motivo: null })
+  if (estado === 'pendiente') ev.enviado = ahora()
+  apuntar(a, u.id, estado === 'pendiente' ? 'evento_enviado' : 'evento_borrador', `evento:${ev.id}`, ev.titulo)
+  return { id: ev.id, estado }
+})
+
+ruta('DELETE', '/entidad/eventos/(\\d+)/cambios', (a, [id]) => {
+  evento(a, Number(id), entidadDe(a).e.id).cambios = null
+  return { ok: true }
+})
+
+ruta('POST', '/entidad/eventos/(\\d+)/cancelar', (a, [id]) => {
+  const { u, e } = entidadDe(a)
+  const ev = evento(a, Number(id), e.id)
+  if (ev.estado !== 'publicado') throw fallo(409, 'Solo se puede cancelar un evento publicado.')
+  ev.estado = 'cancelado'
+  ev.cambios = null
+  apuntar(a, u.id, 'evento_cancelado', `evento:${ev.id}`, ev.titulo)
+  return { ok: true }
+})
+
+ruta('DELETE', '/entidad/eventos/(\\d+)', (a, [id]) => {
+  const { u, e } = entidadDe(a)
+  const ev = evento(a, Number(id), e.id)
+  if (!['borrador', 'rechazado', 'pendiente'].includes(ev.estado)) throw fallo(409, 'Un evento publicado no se borra: se cancela.')
+  a.eventos = a.eventos.filter((x) => x.id !== ev.id)
+  apuntar(a, u.id, 'evento_borrado', `evento:${ev.id}`, ev.titulo)
+  return { ok: true }
+})
+
+// ——— Dirección ———
+
+function direccion(a: AlmacenDemo) {
+  const u = yo(a)
+  if (u.rol !== 'direccion') throw fallo(403, 'No tienes permiso para esto.')
+  return u
+}
+
+const pendientes = (a: AlmacenDemo) => ({
+  entidades: a.entidades.filter((e) => e.estado === 'pendiente').map((e) => aEntidad(a, e)),
+  eventos: a.eventos.filter((e) => e.estado === 'pendiente').map((e) => aGestion(a, e)),
+  cambios: a.eventos.filter((e) => e.estado === 'publicado' && e.cambios).map((e) => aGestion(a, e)),
+})
+
+ruta('GET', '/direccion/pendientes', (a) => {
+  direccion(a)
+  return pendientes(a)
+})
+
+ruta('GET', '/direccion/resumen', (a) => {
+  direccion(a)
+  const p = pendientes(a)
+  return { pendientes: p.entidades.length + p.eventos.length + p.cambios.length }
+})
+
+ruta('GET', '/direccion/eventos', (a, _, __, q) => {
+  direccion(a)
+  const estado = q.get('estado')
+  return a.eventos.filter((e) => (estado ? e.estado === estado : e.estado !== 'borrador'))
+    .sort((x, y) => x.inicio.localeCompare(y.inicio)).map((e) => aGestion(a, e))
+})
+
+ruta('GET', '/direccion/eventos/(\\d+)', (a, [id]) => {
+  direccion(a)
+  return aGestion(a, evento(a, Number(id)))
+})
+
+ruta('POST', '/direccion/eventos', (a, _, c) => {
+  const u = direccion(a)
+  const d = c.evento as DatosEvento
+  const ajustes = c.ajustes as { escena: EventoDemo['escena']; enlazaYincana: boolean; organizador: string | null }
+  comprobarEvento(a, d, false)
+  const en = a.entidades.find((e) => e.id === Number(c.entidadId))
+  if (!en || en.estado !== 'verificada') throw fallo(400, 'Elige una entidad verificada.')
+  if (en.interna && !ajustes.organizador) throw fallo(400, 'Escribe quién organiza el evento.')
+  const t = ahora()
+  const nuevo: EventoDemo = {
+    ...datos(d), id: a.siguienteId++, slug: `demo-${a.siguienteId}`, estado: 'publicado', entidadId: en.id,
+    organizador: en.interna ? ajustes.organizador : null, escena: ajustes.escena, enlazaYincana: ajustes.enlazaYincana,
+    motivo: null, cambios: null, creado: t, actualizado: t, enviado: t,
+  }
+  a.eventos.push(nuevo)
+  apuntar(a, u.id, 'evento_creado_direccion', `evento:${nuevo.id}`, nuevo.titulo)
+  return { id: nuevo.id }
+})
+
+ruta('PUT', '/direccion/eventos/(\\d+)', (a, [id], c) => {
+  const u = direccion(a)
+  const ev = evento(a, Number(id))
+  const d = c.evento as DatosEvento
+  const ajustes = c.ajustes as { escena: EventoDemo['escena']; enlazaYincana: boolean; organizador: string | null }
+  comprobarEvento(a, d, false)
+  Object.assign(ev, datos(d), { escena: ajustes.escena, enlazaYincana: ajustes.enlazaYincana, actualizado: ahora() })
+  if (ev.organizador !== null) ev.organizador = ajustes.organizador
+  apuntar(a, u.id, 'evento_editado_direccion', `evento:${ev.id}`, ev.titulo)
+  return { ok: true }
+})
+
+const cambio = (desde: EstadoEvento[], hasta: EstadoEvento, accion: string, conMotivo = false): Manejador => (a, [id], c) => {
+  const u = direccion(a)
+  const ev = evento(a, Number(id))
+  if (!desde.includes(ev.estado)) throw fallo(409, 'Este evento no está en un estado que permita esto.')
+  if (conMotivo && String(c.motivo ?? '').trim().length < 5) throw fallo(400, 'Motivo: escribe al menos 5 caracteres.')
+  ev.estado = hasta
+  ev.motivo = conMotivo ? String(c.motivo).trim() : null
+  if (hasta === 'retirado') ev.cambios = null
+  apuntar(a, u.id, accion, `evento:${ev.id}`, conMotivo ? ev.motivo! : ev.titulo)
+  return { ok: true }
+}
+
+ruta('POST', '/direccion/eventos/(\\d+)/aprobar', cambio(['pendiente'], 'publicado', 'evento_publicado'))
+ruta('POST', '/direccion/eventos/(\\d+)/rechazar', cambio(['pendiente'], 'rechazado', 'evento_rechazado', true))
+ruta('POST', '/direccion/eventos/(\\d+)/retirar', cambio(['publicado', 'cancelado'], 'retirado', 'evento_retirado', true))
+ruta('POST', '/direccion/eventos/(\\d+)/republicar', cambio(['retirado', 'cancelado', 'rechazado'], 'publicado', 'evento_republicado'))
+
+ruta('POST', '/direccion/eventos/(\\d+)/aprobar-cambios', (a, [id]) => {
+  const u = direccion(a)
+  const ev = evento(a, Number(id))
+  if (!ev.cambios) throw fallo(409, 'No hay cambios pendientes en este evento.')
+  Object.assign(ev, ev.cambios, { cambios: null, actualizado: ahora() })
+  apuntar(a, u.id, 'cambios_aprobados', `evento:${ev.id}`, ev.titulo)
+  return { ok: true }
+})
+
+ruta('POST', '/direccion/eventos/(\\d+)/rechazar-cambios', (a, [id], c) => {
+  const u = direccion(a)
+  const ev = evento(a, Number(id))
+  if (!ev.cambios) throw fallo(409, 'No hay cambios pendientes en este evento.')
+  ev.cambios = null
+  ev.motivo = String(c.motivo ?? '')
+  apuntar(a, u.id, 'cambios_rechazados', `evento:${ev.id}`, ev.motivo)
+  return { ok: true }
+})
+
+ruta('GET', '/direccion/entidades', (a) => {
+  direccion(a)
+  return [...a.entidades].sort((x, y) => Number(y.interna) - Number(x.interna) || x.nombre.localeCompare(y.nombre)).map((e) => aEntidad(a, e))
+})
+
+ruta('GET', '/direccion/entidades/(\\d+)', (a, [id]) => {
+  direccion(a)
+  const e = a.entidades.find((x) => x.id === Number(id))
+  if (!e) throw fallo(404, 'Esa entidad no existe.')
+  return { ...aEntidad(a, e), listaEventos: a.eventos.filter((x) => x.entidadId === e.id && x.estado !== 'borrador').map((x) => aGestion(a, x)) }
+})
+
+const cambioEntidad = (desde: EstadoEntidad[], hasta: EstadoEntidad, accion: string, conMotivo = false): Manejador => (a, [id], c) => {
+  const u = direccion(a)
+  const e = a.entidades.find((x) => x.id === Number(id))
+  if (!e) throw fallo(404, 'Esa entidad no existe.')
+  if (e.interna) throw fallo(409, 'La entidad interna de dirección no se puede cambiar.')
+  if (!desde.includes(e.estado)) throw fallo(409, 'La entidad no está en un estado que permita esto.')
+  if (conMotivo && String(c.motivo ?? '').trim().length < 5) throw fallo(400, 'Motivo: escribe al menos 5 caracteres.')
+  e.estado = hasta
+  e.motivo = conMotivo ? String(c.motivo).trim() : null
+  e.revisado = ahora()
+  apuntar(a, u.id, accion, `entidad:${e.id}`, e.motivo ?? e.nombre)
+  return { ok: true }
+}
+
+ruta('POST', '/direccion/entidades/(\\d+)/verificar', cambioEntidad(['pendiente', 'rechazada'], 'verificada', 'entidad_verificada'))
+ruta('POST', '/direccion/entidades/(\\d+)/rechazar', cambioEntidad(['pendiente'], 'rechazada', 'entidad_rechazada', true))
+ruta('POST', '/direccion/entidades/(\\d+)/suspender', cambioEntidad(['verificada'], 'suspendida', 'entidad_suspendida', true))
+ruta('POST', '/direccion/entidades/(\\d+)/reactivar', cambioEntidad(['suspendida'], 'verificada', 'entidad_reactivada'))
+
+ruta('PUT', '/direccion/entidades/(\\d+)/nota', (a, [id], c) => {
+  direccion(a)
+  const e = a.entidades.find((x) => x.id === Number(id))
+  if (!e) throw fallo(404, 'Esa entidad no existe.')
+  e.nota = String(c.nota ?? '')
+  return { ok: true }
+})
+
+ruta('POST', '/direccion/municipios', (a, _, c) => {
+  const u = direccion(a)
+  const nombre = String(c.nombre ?? '').trim()
+  if (nombre.length < 2) throw fallo(400, 'Nombre: escribe al menos 2 caracteres.')
+  if (!Number.isFinite(c.lat) || !Number.isFinite(c.lng)) throw fallo(400, 'Las coordenadas no son válidas.')
+  a.municipios.push({ id: a.siguienteId++, nombre, lat: Number(c.lat), lng: Number(c.lng), activo: true, esValverde: false })
+  apuntar(a, u.id, 'municipio_creado', '', nombre)
+  return { ok: true }
+})
+
+ruta('PUT', '/direccion/municipios/(\\d+)', (a, [id], c) => {
+  const u = direccion(a)
+  const m = a.municipios.find((x) => x.id === Number(id))
+  if (!m) throw fallo(404, 'Ese municipio no existe.')
+  if (m.esValverde && !c.activo) throw fallo(409, 'Valverde no se puede desactivar.')
+  m.activo = Boolean(c.activo)
+  apuntar(a, u.id, 'municipio_cambiado', `municipio:${m.id}`, `${m.nombre} ${m.activo ? 'activo' : 'inactivo'}`)
+  return { ok: true }
+})
+
+ruta('GET', '/direccion/registro', (a) => {
+  direccion(a)
+  return a.registro.slice(0, 100).map((r) => {
+    const u = a.usuarios.find((x) => x.id === r.usuarioId)
+    return { ...r, quien: u?.nombre ?? null, rol: u?.rol ?? null }
+  })
+})
+
+ruta('GET', '/direccion/equipo', (a) => {
+  direccion(a)
+  return a.usuarios.filter((u) => u.rol === 'direccion').map((u) => ({ id: u.id, nombre: u.nombre, email: u.email, dobleFactor: u.totpActivo ? 1 : 0, ultimoAcceso: ahora() }))
+})
+
+/** Punto de entrada: mismo contrato que api() contra el servidor real. */
+export async function apiDemo(metodo: string, rutaPedida: string, cuerpo: unknown) {
+  const [camino, consulta = ''] = rutaPedida.split('?')
+  const a = leerAlmacen()
+  for (const [m, patron, fn] of RUTAS) {
+    const r = m === metodo ? patron.exec(camino) : null
+    if (!r) continue
+    try {
+      const resultado = fn(a, r.slice(1), (cuerpo ?? {}) as Cuerpo, new URLSearchParams(consulta))
+      guardarAlmacen(a)
+      // Un pequeño retraso, para que se note que «se guarda» como en la versión real.
+      await new Promise((ok) => setTimeout(ok, 120))
+      return JSON.parse(JSON.stringify(resultado ?? null)) as unknown
+    } catch (e) {
+      if (e instanceof FalloDemo) {
+        guardarAlmacen(a)
+        throw e
+      }
+      throw e
+    }
+  }
+  throw fallo(404, 'No existe.')
+}
+
+export { FalloDemo }

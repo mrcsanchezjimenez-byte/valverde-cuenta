@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { LETRAS_GRATIS, motivoCifNoGratis } from '../../../compartido/cif.ts'
 import { TIPOS_ENTIDAD } from '../../../compartido/tipos.ts'
 import { api } from '../api.ts'
+import { AccesoDemo, PistaCodigoDemo } from '../componentes/Demo.tsx'
 import { Bien, Fallo, Qr, useAccion, useMunicipios } from '../componentes/piezas.tsx'
 import { useSesion } from '../sesion.tsx'
 
@@ -26,17 +27,24 @@ export function Entrar() {
   const [clave, setClave] = useState('')
   const { ocupado, error, hacer } = useAccion()
 
-  const enviar = (e: FormEvent) => {
-    e.preventDefault()
+  const entrar = (correo: string, contrasena: string) =>
     void hacer(async () => {
-      await api('POST', '/cuenta/entrar', { email, clave })
+      await api('POST', '/cuenta/entrar', { email: correo, clave: contrasena })
       setClave('')
       await recargar()
     })
+  const enviar = (e: FormEvent) => {
+    e.preventDefault()
+    entrar(email, clave)
   }
 
   return (
     <Marco titulo="Entrar">
+      <AccesoDemo alElegir={(correo, contrasena) => {
+        setEmail(correo)
+        setClave(contrasena)
+        entrar(correo, contrasena)
+      }} />
       <form className="g-form" onSubmit={enviar}>
         <label className="g-campo"><span>Correo</span>
           <input type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
@@ -69,6 +77,7 @@ export function Codigo() {
   return (
     <Marco titulo="Código de verificación">
       <p className="g-suave">Abre la aplicación de autenticación del móvil y escribe el código de 6 cifras de Valverde Cuenta.</p>
+      <PistaCodigoDemo />
       <form className="g-form" onSubmit={enviar}>
         <input className="g-codigo" inputMode="numeric" autoComplete="one-time-code" pattern="\d{6}" maxLength={6}
           value={codigo} onChange={(e) => setCodigo(e.target.value.replace(/\D/g, ''))} required autoFocus aria-label="Código de 6 cifras" />

@@ -161,3 +161,10 @@ a.g-fila-lista:hover { border-color: var(--primario); }
 .g-chip.activo { background: var(--primario); border-color: var(--primario); color: #fff; }
 .g-motivo textarea { width: 100%; }
 details summary { cursor: pointer; color: var(--primario); font-weight: 600; }
+
+/* Demostración sin servidor */
+.g-franja-demo { display: flex; gap: 14px; align-items: center; justify-content: center; flex-wrap: wrap; padding: 7px 16px; background: var(--oro-claro); color: #5E4610; font-size: 13.5px; position: relative; z-index: 1001; }
+.g-franja-demo a, .g-franja-demo .g-enlace { color: var(--cuero-oscuro); font-weight: 700; font-size: 13.5px; }
+.g-acceso-demo { background: var(--primario-claro); border-color: #C5DCCF; }
+.g-acceso-demo p { margin: 0; }
+.g-acceso-demo code { background: #fff; padding: 1px 6px; border-radius: 5px; font-size: 13px; }
