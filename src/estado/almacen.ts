@@ -36,3 +36,19 @@ export function completarParada(numero: number) {
   if (!actual.includes(numero)) completadas.poner([...actual, numero])
 }
 export const reiniciarYincana = () => completadas.poner([])
+
+/** Inscripciones hechas desde este móvil (con su código secreto para consultarlas o cancelarlas). */
+export interface InscripcionGuardada {
+  codigo: string
+  evento: string
+  personas: number
+  estado: 'confirmada' | 'espera' | 'cancelada'
+}
+const inscripciones = crearAlmacen<InscripcionGuardada[]>('vc.inscripciones', [])
+export const useMisInscripciones = inscripciones.useValor
+export function guardarInscripcion(i: InscripcionGuardada) {
+  inscripciones.poner([...inscripciones.obtener().filter((x) => x.evento !== i.evento), i])
+}
+export function olvidarInscripcion(codigo: string) {
+  inscripciones.poner(inscripciones.obtener().filter((x) => x.codigo !== codigo))
+}

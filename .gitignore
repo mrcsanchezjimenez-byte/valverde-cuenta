@@ -30,3 +30,4 @@ servidor/datos/
 dist-gestion
 # Modo demostración del panel en local (no es secreto)
 !gestion/.env.demo
+!.env.demo

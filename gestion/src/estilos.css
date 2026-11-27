@@ -365,3 +365,14 @@ details summary { cursor: pointer; color: var(--primario); font-weight: 650; }
 .g-franja-demo a, .g-franja-demo .g-enlace { color: var(--cuero-oscuro); font-weight: 700; font-size: 13.5px; }
 .g-acceso-demo { background: var(--primario-claro); border-color: #C5DCCF; }
 .g-acceso-demo code { background: #fff; padding: 1px 6px; border-radius: 5px; font-size: 13px; }
+
+/* ——— Inscripciones ——— */
+.g-resumen-inscritos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.g-resumen-inscritos div { background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; box-shadow: var(--sombra); }
+.g-resumen-inscritos b { font: 700 26px var(--titulos); color: var(--primario-oscuro); }
+.g-resumen-inscritos b small { font-size: 15px; color: var(--suave); }
+.g-resumen-inscritos span { font-size: 13px; color: var(--suave); }
+.g-fila.apagado { opacity: .55; }
+.g-boton-icono { border: 0; background: var(--superficie); color: var(--suave); width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; padding: 0; }
+.g-boton-icono:hover { background: var(--rojo-claro); color: var(--rojo); }
+@media (max-width: 560px) { .g-resumen-inscritos b { font-size: 22px; } }

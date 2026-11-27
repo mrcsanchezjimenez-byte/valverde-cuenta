@@ -64,6 +64,20 @@
       ],
       "port": 5276,
       "url": "http://localhost:5276"
+    },
+    {
+      "name": "app-demo",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "--mode",
+        "demo",
+        "--port",
+        "5277",
+        "--strictPort"
+      ],
+      "port": 5277,
+      "url": "http://localhost:5277"
     }
   ]
 }

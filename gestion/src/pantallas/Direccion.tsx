@@ -6,6 +6,7 @@ import { Escena } from '../../../src/componentes/Escena.tsx'
 import { api } from '../api.ts'
 import { avisar } from '../componentes/Avisos.tsx'
 import { FormEvento, eventoVacio } from '../componentes/FormEvento.tsx'
+import { Inscritos } from '../componentes/Inscritos.tsx'
 import { Icono } from '../componentes/Iconos.tsx'
 import { Buscador, FilaEntidad, FilaEvento, Filtros, nombreMes, nombreTipo, Vacio } from '../componentes/Listas.tsx'
 import { Cargando, Estado, Fallo, fechaCorta, fechaIso, PedirMotivo, useAccion, useCarga, useMunicipios } from '../componentes/piezas.tsx'
@@ -110,6 +111,10 @@ function Ficha({ e, municipios }: { e: DatosEvento; municipios: Municipio[] }) {
       <dt>Público</dt><dd>{e.publico}</dd>
       <dt>Precio</dt><dd>{precioTexto(e.precio)}</dd>
       <dt>Enlace</dt><dd>{e.enlace ? <span className="g-url">{e.enlace}</span> : '—'}</dd>
+      <dt>Inscripción</dt>
+      <dd>{e.inscripcion
+        ? `Hay que apuntarse · ${e.inscripcion.plazas === null ? 'sin límite de plazas' : `${e.inscripcion.plazas} plazas`}${e.inscripcion.hasta ? ` · se cierra ${fechaCorta(e.inscripcion.hasta)}` : ''}`
+        : 'No hace falta apuntarse'}</dd>
     </dl>
   )
 }
@@ -215,6 +220,10 @@ export function RevisarEvento() {
           </div>
           <Ficha e={e} municipios={municipios.datos} />
         </div>
+      )}
+
+      {e.inscripcion && ['publicado', 'cancelado'].includes(e.estado) && !editando && (
+        <Inscritos ruta={`/direccion/eventos/${e.id}/inscripciones`} titulo={e.titulo} soloLectura />
       )}
 
       {pidiendo === 'rechazar' && (

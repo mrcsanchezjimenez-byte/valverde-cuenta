@@ -5,6 +5,7 @@ import { avisarDireccion } from '../correo.ts'
 import {
   aGestion, cambiarEstado, comprobarFuturo, comprobarImagen, comprobarMunicipio, crearEvento, eventoDeEntidad, guardarDatos, listarEventos,
 } from '../eventos.ts'
+import { avisarCancelacionEvento, cancelarPorEntidad, listaInscripciones } from '../inscripciones.ts'
 import { anotar } from '../registro.ts'
 import { permitir } from '../seguridad/limites.ts'
 import { exigir } from '../seguridad/sesiones.ts'
@@ -104,13 +105,14 @@ entidad.delete('/eventos/:id/cambios', (c) => {
 })
 
 /** Cancelar un evento publicado: sigue en la agenda marcado como cancelado. Sin esperar a dirección. */
-entidad.post('/eventos/:id/cancelar', (c) => {
+entidad.post('/eventos/:id/cancelar', async (c) => {
   const u = c.get('usuario')
   const f = eventoDeEntidad(idDe(c), u.entidadId!)
   if (f.estado !== 'publicado') throw fallo(409, 'Solo se puede cancelar un evento publicado.')
   cambiarEstado(f.id, 'cancelado')
   ejecutar('UPDATE eventos SET cambios = NULL WHERE id = ?', f.id)
   anotar(c, u.id, 'evento_cancelado', `evento:${f.id}`, f.titulo)
+  await avisarCancelacionEvento(f)
   return c.json({ ok: true })
 })
 
@@ -134,5 +136,20 @@ entidad.get('/avisos', (c) => {
 
 entidad.post('/avisos/leidos', (c) => {
   ejecutar('UPDATE avisos SET leido = 1 WHERE entidad_id = ? AND leido = 0', c.get('usuario').entidadId!)
+  return c.json({ ok: true })
+})
+
+// ——— Personas apuntadas a sus eventos ———
+
+entidad.get('/eventos/:id/inscripciones', (c) => {
+  const f = eventoDeEntidad(idDe(c), c.get('usuario').entidadId!)
+  return c.json({ ...listaInscripciones(f.id), plazas: f.plazas })
+})
+
+entidad.post('/inscripciones/:id/cancelar', async (c) => {
+  const id = Number(c.req.param('id'))
+  if (!Number.isInteger(id) || id <= 0) throw fallo(404, 'Esa inscripción no existe.')
+  await cancelarPorEntidad(id, c.get('usuario').entidadId!)
+  anotar(c, c.get('usuario').id, 'inscripcion_cancelada', `inscripcion:${id}`)
   return c.json({ ok: true })
 })

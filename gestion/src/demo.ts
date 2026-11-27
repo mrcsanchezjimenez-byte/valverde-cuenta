@@ -8,7 +8,7 @@ import { escenaPorDefecto } from '../../compartido/categorias.ts'
 import { blobADataUrl, prepararFoto } from '../../navegador/medios.ts'
 import type { DatosEvento, EstadoEntidad, EstadoEvento } from '../../compartido/tipos.ts'
 import {
-  CUENTAS_DEMO, conDistancia, guardarAlmacen, leerAlmacen, type AlmacenDemo, type EntidadDemo, type EventoDemo, type UsuarioDemo,
+  CUENTAS_DEMO, cancelarInscripcionDemo, conDistancia, guardarAlmacen, leerAlmacen, listaInscripcionesDemo, type AlmacenDemo, type EntidadDemo, type EventoDemo, type UsuarioDemo,
 } from '../../demo/almacen.ts'
 
 class FalloDemo extends Error {
@@ -92,6 +92,7 @@ const datos = (d: DatosEvento): DatosEvento => ({
   titulo: d.titulo.trim(), resumen: d.resumen.trim(), descripcion: d.descripcion.trim(), inicio: d.inicio, fin: d.fin,
   lugar: d.lugar.trim(), municipioId: d.municipioId, lat: d.lat, lng: d.lng, precio: d.precio || null,
   publico: d.publico.trim(), categoria: d.categoria, paraNinos: d.paraNinos, enlace: d.enlace.trim(), imagen: d.imagen ?? null,
+  inscripcion: d.inscripcion ?? null,
 })
 
 type Manejador = (a: AlmacenDemo, p: string[], cuerpo: Cuerpo, consulta: URLSearchParams) => unknown
@@ -300,6 +301,16 @@ ruta('POST', '/entidad/avisos/leidos', (a) => {
   return { ok: true }
 })
 
+ruta('GET', '/entidad/eventos/(\\d+)/inscripciones', (a, [id]) => listaInscripcionesDemo(a, evento(a, Number(id), entidadDe(a).e.id).id))
+
+ruta('POST', '/entidad/inscripciones/(\\d+)/cancelar', (a, [id]) => {
+  const { e } = entidadDe(a)
+  const i = a.inscripciones.find((x) => x.id === Number(id))
+  if (!i || a.eventos.find((x) => x.id === i.eventoId)?.entidadId !== e.id) throw fallo(404, 'Esa inscripción no existe.')
+  cancelarInscripcionDemo(a, i)
+  return { ok: true }
+})
+
 // ——— Dirección ———
 
 function direccion(a: AlmacenDemo) {
@@ -410,6 +421,11 @@ ruta('POST', '/direccion/eventos/(\\d+)/rechazar-cambios', (a, [id], c) => {
   ev.motivo = String(c.motivo ?? '')
   apuntar(a, u.id, 'cambios_rechazados', `evento:${ev.id}`, ev.motivo)
   return { ok: true, avisado: avisarEntidad(a, ev.entidadId, 'mal', 'Cambios no publicados', `No hemos aplicado los cambios en «${ev.titulo}» por este motivo:\n\n${ev.motivo}\n\nEl evento sigue publicado como estaba.`, ev.id) }
+})
+
+ruta('GET', '/direccion/eventos/(\\d+)/inscripciones', (a, [id]) => {
+  direccion(a)
+  return listaInscripcionesDemo(a, evento(a, Number(id)).id)
 })
 
 ruta('GET', '/direccion/entidades', (a) => {

@@ -4,12 +4,17 @@ import { serve } from '@hono/node-server'
 import { crearApp } from './app.ts'
 import { iniciarBd, uno } from './bd.ts'
 import { config } from './config.ts'
+import { borrarInscripcionesAntiguas } from './inscripciones.ts'
 import { limpiarCaducados } from './seguridad/sesiones.ts'
 
 mkdirSync(config.datos, { recursive: true })
 iniciarBd(join(config.datos, 'valverde.db'))
-limpiarCaducados()
-setInterval(limpiarCaducados, 3600_000).unref()
+const limpiar = () => {
+  limpiarCaducados()
+  borrarInscripcionesAntiguas()
+}
+limpiar()
+setInterval(limpiar, 3600_000).unref()
 
 const app = crearApp()
 serve({ fetch: app.fetch, port: config.puerto, hostname: config.produccion ? '0.0.0.0' : '127.0.0.1' }, (info) => {

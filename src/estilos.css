@@ -180,7 +180,7 @@ h1 em { font-style: normal; color: var(--primario); padding-bottom: 7px; backgro
 .dato > div { flex: 1; min-width: 0; }
 .dato b { display: block; font-weight: 650; }
 .dato small { display: block; color: var(--suave); font-size: 13.5px; }
-.ficha-texto { line-height: 1.5; }
+.ficha-texto { line-height: 1.5; white-space: pre-line; }
 .relacionado { display: flex; align-items: center; gap: 11px; background: #F4E6D8; border-radius: var(--radio); padding: 11px; }
 .relacionado small { display: block; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--cuero-oscuro); }
 .relacionado b { display: block; font-weight: 650; }
@@ -281,3 +281,26 @@ img.miniatura { object-fit: cover; background: var(--superficie); }
 .cartel-fondo { position: absolute; inset: -20px; width: calc(100% + 40px); height: calc(100% + 40px); object-fit: cover; filter: blur(22px) brightness(.75); }
 .cartel-enlace { position: absolute; inset: 0; display: grid; place-items: center; padding: calc(env(safe-area-inset-top) + 64px) 16px 30px; }
 .cartel { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; box-shadow: 0 8px 30px rgb(0 0 0 / .35); }
+
+/* ——— Inscripciones ——— */
+.inscripcion { display: flex; align-items: center; gap: 11px; padding: 12px; border-radius: var(--radio); background: var(--primario-claro); border: 1px solid #C5DCCF; }
+.inscripcion > div { flex: 1; min-width: 0; }
+.inscripcion b { display: block; font-weight: 700; }
+.inscripcion small { display: block; color: var(--suave); font-size: 13.5px; }
+.inscripcion-boton { flex: none; padding: 0 16px; }
+.inscripcion-dentro { background: var(--verde-claro); }
+.inscripcion-espera { background: var(--oro-claro); border-color: #EBD9A8; }
+.hoja-formulario { max-height: calc(100% - 20px); overflow-y: auto; gap: 12px; padding: 18px 16px 16px; text-align: left; }
+.campo { display: flex; flex-direction: column; gap: 5px; font-weight: 650; font-size: 14px; }
+.campo small { font-weight: 400; color: var(--suave); }
+.campo input { font: inherit; font-weight: 400; font-size: 16px; height: 48px; padding: 0 14px; border: 1.5px solid var(--borde-fuerte); border-radius: 12px; background: #fff; }
+.campo input:focus { outline: none; border-color: var(--primario); box-shadow: 0 0 0 4px rgb(30 91 67 / .12); }
+.contador { display: flex; align-items: center; gap: 16px; }
+.contador b { font: 700 24px var(--titulos); min-width: 24px; text-align: center; }
+.contador .boton-redondo { font-size: 22px; font-weight: 600; }
+.contador .boton-redondo:disabled { opacity: .4; }
+.casilla { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--suave); line-height: 1.45; }
+.casilla input { width: 20px; height: 20px; margin: 1px 0 0; flex: none; accent-color: var(--primario); }
+.error-formulario { background: #F6DEDA; color: var(--rojo); padding: 10px 12px; border-radius: 10px; font-size: 14px; font-weight: 600; }
+.aviso-espera { background: var(--oro-claro); color: #5E4610; padding: 10px 12px; border-radius: 10px; font-size: 13.5px; }
+.trampa { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }

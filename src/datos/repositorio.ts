@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useSyncExternalStore } from 'react'
 import { escribir, leer } from '../nativo'
 import { fecha, noHaTerminado } from './fechas'
+import type { MiInscripcion } from '../../compartido/tipos.ts'
 import type { Evento } from './tipos'
 
 /**
@@ -104,4 +105,64 @@ export function useAgenda() {
 export function useEvento(id: string) {
   const { todos, estado } = useAgenda()
   return { evento: todos.find((e) => e.id === id), estado }
+}
+
+// ——— Inscripciones (sin cuenta) ———
+
+export interface DatosInscripcion {
+  nombre: string
+  email: string
+  telefono: string
+  personas: number
+  acepta: boolean
+  web: string
+}
+
+async function pedirJson<T>(ruta: string, cuerpo?: unknown): Promise<T> {
+  let r: Response
+  try {
+    r = await fetch(`${API}/api/publico${ruta}`, {
+      method: cuerpo === undefined ? 'GET' : 'POST',
+      credentials: 'omit',
+      headers: cuerpo === undefined ? {} : { 'Content-Type': 'application/json' },
+      body: cuerpo === undefined ? undefined : JSON.stringify(cuerpo),
+    })
+  } catch {
+    throw new Error('No hay conexión. Inténtalo de nuevo en un momento.')
+  }
+  const datos = await r.json().catch(() => null) as (T & { error?: string }) | null
+  if (!r.ok || !datos) throw new Error(datos?.error ?? 'Algo ha fallado. Inténtalo otra vez.')
+  return datos
+}
+
+export async function apuntarme(slug: string, d: DatosInscripcion) {
+  if (MODO_DEMO) {
+    const { inscribirDemo } = await import('../../demo/almacen.ts')
+    const r = inscribirDemo(slug, d)
+    void descargar()
+    return r
+  }
+  const r = await pedirJson<{ codigo: string; estado: 'confirmada' | 'espera'; posicion: number | null }>(`/eventos/${slug}/inscripciones`, d)
+  void descargar()
+  return r
+}
+
+export async function consultarInscripcion(codigo: string) {
+  if (MODO_DEMO) {
+    const { verInscripcionDemo } = await import('../../demo/almacen.ts')
+    return verInscripcionDemo(codigo)
+  }
+  return pedirJson<MiInscripcion>(`/inscripciones/${codigo}`)
+}
+
+export async function cancelarMiInscripcion(codigo: string) {
+  if (MODO_DEMO) {
+    const { cancelarPorCodigoDemo } = await import('../../demo/almacen.ts')
+    const r = cancelarPorCodigoDemo(codigo)
+    void descargar()
+    return r
+  }
+  const r = await pedirJson<MiInscripcion>(`/inscripciones/${codigo}/cancelar`, {})
+  void descargar()
+  return r
 }

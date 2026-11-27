@@ -17,7 +17,7 @@ export interface Ajustes {
 export const eventoVacio = (municipio?: Municipio): DatosEvento => ({
   titulo: '', resumen: '', descripcion: '', inicio: '', fin: '', lugar: '', municipioId: municipio?.id ?? 0,
   lat: municipio?.lat ?? 37.5752, lng: municipio?.lng ?? -6.752, precio: null, publico: 'Todos los públicos',
-  categoria: 'fiestas', paraNinos: false, enlace: '', imagen: null,
+  categoria: 'fiestas', paraNinos: false, enlace: '', imagen: null, inscripcion: null,
 })
 
 function Campo({ etiqueta, ayuda, children, cuenta, ancho }: {
@@ -242,6 +242,27 @@ export function FormEvento({ inicial, imagenUrlInicial = null, municipios, ajust
           <Campo etiqueta="Enlace (opcional)" ayuda="Web, red social o venta de entradas.">
             <input type="url" value={d.enlace} onChange={(e) => poner('enlace', e.target.value)} placeholder="https://" maxLength={300} />
           </Campo>
+        </Seccion>
+
+        <Seccion paso={6} titulo="¿Hay que apuntarse?" texto="Si lo activáis, la gente se apunta desde la app y vosotros veis la lista de personas.">
+          <label className="g-interruptor g-campo-ancho">
+            <input type="checkbox" checked={Boolean(d.inscripcion)}
+              onChange={(e) => poner('inscripcion', e.target.checked ? { plazas: null, hasta: null } : null)} />
+            <span className="g-interruptor-pista" aria-hidden="true" />
+            <span>Hay que apuntarse para venir</span>
+          </label>
+          {d.inscripcion && (
+            <>
+              <Campo etiqueta="Plazas" ayuda="Déjalo vacío si no hay límite. Cuando se llenen, la gente pasa a lista de espera.">
+                <input type="number" min={1} max={5000} value={d.inscripcion.plazas ?? ''} placeholder="Sin límite"
+                  onChange={(e) => poner('inscripcion', { ...d.inscripcion!, plazas: e.target.value === '' ? null : Number(e.target.value) })} />
+              </Campo>
+              <Campo etiqueta="Se cierra (opcional)" ayuda="Si no pones nada, se puede apuntar hasta que empiece.">
+                <input type="datetime-local" value={d.inscripcion.hasta ?? ''} max={d.inicio || undefined}
+                  onChange={(e) => poner('inscripcion', { ...d.inscripcion!, hasta: e.target.value || null })} />
+              </Campo>
+            </>
+          )}
         </Seccion>
 
         {ajustes && (

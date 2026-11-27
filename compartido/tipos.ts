@@ -36,6 +36,23 @@ export interface Evento {
   cancelado?: boolean
   /** Cartel o foto del evento. Si no hay, la app pone una ilustración según la categoría. */
   imagen?: string
+  /** Si hay que apuntarse: cómo está la inscripción ahora mismo. */
+  inscripcion?: EstadoInscripcionPublica
+}
+
+export interface EstadoInscripcionPublica {
+  /** null: sin límite de plazas. */
+  plazas: number | null
+  libres: number | null
+  /** Hasta cuándo se admite gente (hora local); si es null, hasta que empiece. */
+  hasta: string | null
+  abierta: boolean
+}
+
+/** Configuración de la inscripción de un evento (la decide la entidad). */
+export interface ConfigInscripcion {
+  plazas: number | null
+  hasta: string | null
 }
 
 export type EstadoEvento = 'borrador' | 'pendiente' | 'publicado' | 'rechazado' | 'cancelado' | 'retirado'
@@ -74,6 +91,8 @@ export interface DatosEvento {
   enlace: string
   /** Clave de la imagen subida (cartel), o null para usar la ilustración genérica. */
   imagen: string | null
+  /** null: no hace falta apuntarse. */
+  inscripcion: ConfigInscripcion | null
 }
 
 /** Un evento visto desde el panel de gestión. */
@@ -198,3 +217,32 @@ export const AVISO_AGENDA = {
   general: 'Valverde Cuenta difunde las actividades que anuncian asociaciones e instituciones, pero no las organiza ni responde de su desarrollo: cada una es responsabilidad de quien la organiza. Lo único que garantizamos es la identidad de la entidad que publica.',
   entidad: 'Nuestra entidad organiza (o coorganiza) lo que publica y es la única responsable de su desarrollo, permisos, seguros y seguridad. Valverde Cuenta solo difunde la información.',
 }
+
+// ——— Inscripciones a eventos ———
+
+export type EstadoInscripcion = 'confirmada' | 'espera' | 'cancelada'
+
+/** Lo que ve la entidad de cada persona apuntada. */
+export interface Inscripcion {
+  id: number
+  nombre: string
+  email: string
+  telefono: string
+  personas: number
+  estado: EstadoInscripcion
+  creado: string
+}
+
+/** Lo que ve quien se apunta (con su código para consultarla o cancelarla). */
+export interface MiInscripcion {
+  codigo: string
+  evento: string
+  titulo: string
+  inicio: string
+  personas: number
+  estado: EstadoInscripcion
+}
+
+export const MAX_PERSONAS_INSCRIPCION = 6
+
+export const AVISO_INSCRIPCION = 'Tus datos se usan solo para gestionar esta inscripción: los ve la entidad que organiza y se borran un mes después del evento. No los usamos para nada más.'

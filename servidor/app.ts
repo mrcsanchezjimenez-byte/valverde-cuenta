@@ -60,7 +60,9 @@ export function crearApp() {
    * cabecera propia (que un formulario ajeno no puede poner) y, si el navegador dice su origen, desde el panel.
    */
   app.use('/api/*', async (c, next) => {
-    if (!SEGUROS.has(c.req.method)) {
+    if (!SEGUROS.has(c.req.method) && c.req.path.startsWith('/api/publico/')) {
+      if (!(c.req.header('content-type') ?? '').startsWith('application/json')) return c.json({ error: 'Petición no permitida.' }, 403)
+    } else if (!SEGUROS.has(c.req.method)) {
       const origen = c.req.header('origin')
       // El panel siempre manda JSON (aunque sea {}) o, para subir imágenes, un formulario multipart; DELETE va sin cuerpo.
       const tipo = c.req.header('content-type') ?? ''

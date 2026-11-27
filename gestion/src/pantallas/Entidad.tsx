@@ -5,6 +5,7 @@ import { api } from '../api.ts'
 import { avisar } from '../componentes/Avisos.tsx'
 import { FormEvento, eventoVacio } from '../componentes/FormEvento.tsx'
 import { Icono } from '../componentes/Iconos.tsx'
+import { Inscritos } from '../componentes/Inscritos.tsx'
 import { FilaEvento, Vacio } from '../componentes/Listas.tsx'
 import { Cargando, Estado, Fallo, fechaIso, useAccion, useCarga, useMunicipios } from '../componentes/piezas.tsx'
 import { useSesion } from '../sesion.tsx'
@@ -148,6 +149,10 @@ export function EventoEntidad() {
       )}
 
       <AvisoEstadoEntidad />
+
+      {e?.inscripcion && ['publicado', 'cancelado'].includes(e.estado) && (
+        <Inscritos ruta={`/entidad/eventos/${e.id}/inscripciones`} titulo={e.titulo} />
+      )}
 
       {editable && (
         <FormEvento

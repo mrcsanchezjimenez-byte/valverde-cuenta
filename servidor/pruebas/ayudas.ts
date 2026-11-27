@@ -108,7 +108,7 @@ export function eventoValido(cambios: Record<string, unknown> = {}) {
     titulo: 'Concierto de la banda', resumen: 'La banda toca su repertorio de invierno.',
     descripcion: 'Un concierto al aire libre para toda la familia, con repertorio clásico.',
     inicio: `${d}T19:00`, fin: `${d}T21:00`, lugar: 'Plaza de la Constitución', municipioId: 1,
-    lat: 37.574, lng: -6.749, precio: null, publico: 'Todos los públicos', categoria: 'musica', paraNinos: true, enlace: '', imagen: null,
+    lat: 37.574, lng: -6.749, precio: null, publico: 'Todos los públicos', categoria: 'musica', paraNinos: true, enlace: '', imagen: null, inscripcion: null,
     ...cambios,
   }
 }

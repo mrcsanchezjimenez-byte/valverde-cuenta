@@ -8,6 +8,7 @@ import { enlaceGestion, enviarCorreo } from '../correo.ts'
 import {
   aGestion, cambiarEstado, comprobarImagen, comprobarMunicipio, crearEvento, eventoParaDireccion, guardarDatos, listarEventos, type FilaEvento,
 } from '../eventos.ts'
+import { listaInscripciones } from '../inscripciones.ts'
 import { anotar } from '../registro.ts'
 import { exigir } from '../seguridad/sesiones.ts'
 import { ajustesDireccion, esquemaEvento, leer, motivo, municipio } from '../validacion.ts'
@@ -291,3 +292,8 @@ direccion.get('/registro', (c) => {
 
 direccion.get('/equipo', (c) => c.json(varios(
   "SELECT id, nombre, email, totp_activo AS dobleFactor, activo, ultimo_acceso AS ultimoAcceso FROM usuarios WHERE rol = 'direccion' ORDER BY nombre")))
+
+direccion.get('/eventos/:id/inscripciones', (c) => {
+  const f = eventoParaDireccion(id(c))
+  return c.json({ ...listaInscripciones(f.id), plazas: f.plazas })
+})

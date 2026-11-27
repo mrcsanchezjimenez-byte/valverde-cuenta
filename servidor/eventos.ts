@@ -28,6 +28,9 @@ export interface FilaEvento {
   para_ninos: number
   enlace: string
   imagen: string | null
+  inscripcion: number
+  plazas: number | null
+  inscripcion_hasta: string | null
   escena: TipoEscena
   enlaza_yincana: number
   organizador: string | null
@@ -49,6 +52,7 @@ const datosDe = (f: FilaEvento): DatosEvento => ({
   municipioId: f.municipio_id, lat: f.lat, lng: f.lng,
   precio: f.precio_centimos === null ? null : f.precio_centimos / 100,
   publico: f.publico, categoria: f.categoria, paraNinos: Boolean(f.para_ninos), enlace: f.enlace, imagen: f.imagen,
+  inscripcion: f.inscripcion ? { plazas: f.plazas, hasta: f.inscripcion_hasta } : null,
 })
 
 export const aGestion = (f: FilaEvento): EventoGestion => ({
@@ -61,8 +65,24 @@ export const aGestion = (f: FilaEvento): EventoGestion => ({
   creado: f.creado, actualizado: f.actualizado, enviado: f.enviado,
 })
 
+/** Plazas ocupadas (confirmadas) por evento. */
+export function ocupadas(eventoId?: number): Map<number, number> {
+  const filas = varios<{ evento_id: number; n: number }>(
+    `SELECT evento_id, SUM(personas) AS n FROM inscripciones WHERE estado = 'confirmada' ${eventoId ? 'AND evento_id = ?' : ''} GROUP BY evento_id`,
+    ...(eventoId ? [eventoId] : []))
+  return new Map(filas.map((x) => [x.evento_id, x.n]))
+}
+
+/** Cómo está la inscripción de un evento ahora mismo. */
+export function estadoInscripcion(f: FilaEvento, usadas: number) {
+  const libres = f.plazas === null ? null : Math.max(0, f.plazas - usadas)
+  const ahora = ahoraLocal()
+  const abierta = f.estado === 'publicado' && ahora < (f.inscripcion_hasta ?? f.inicio)
+  return { plazas: f.plazas, libres, hasta: f.inscripcion_hasta, abierta }
+}
+
 /** Lo que ve el público: sin datos internos (motivos, notas, estados de revisión). */
-export const aPublico = (f: FilaEvento): Evento => ({
+export const aPublico = (f: FilaEvento, usadas = 0): Evento => ({
   id: f.slug, titulo: f.titulo, resumen: f.resumen, descripcion: f.descripcion, inicio: f.inicio, fin: f.fin,
   lugar: f.lugar, municipio: f.municipio, zona: f.es_valverde ? 'valverde' : 'alrededores', lat: f.lat, lng: f.lng,
   organizador: f.organizador ?? f.entidad_nombre,
@@ -73,6 +93,7 @@ export const aPublico = (f: FilaEvento): Evento => ({
   ...(f.enlace ? { enlace: f.enlace } : {}),
   ...(f.estado === 'cancelado' ? { cancelado: true } : {}),
   ...(f.imagen ? { imagen: urlImagen(f.imagen) } : {}),
+  ...(f.inscripcion ? { inscripcion: estadoInscripcion(f, usadas) } : {}),
 })
 
 export const leerEvento = (id: number) => uno<FilaEvento>(`${SELECT} WHERE ev.id = ?`, id)
@@ -96,7 +117,8 @@ export const listarEventos = (donde: string, ...vs: (string | number)[]) =>
 /** Eventos de la agenda pública: publicados o cancelados, desde dos meses atrás (para el calendario). */
 export function eventosPublicos() {
   const desde = ahoraLocal(new Date(Date.now() - 60 * 86400_000))
-  return listarEventos("ev.estado IN ('publicado','cancelado') AND ev.fin >= ?", desde).map(aPublico)
+  const usadas = ocupadas()
+  return listarEventos("ev.estado IN ('publicado','cancelado') AND ev.fin >= ?", desde).map((f) => aPublico(f, usadas.get(f.id) ?? 0))
 }
 
 /** Comprueba que el municipio existe y está dentro de la zona de la agenda. */
@@ -123,14 +145,16 @@ export function comprobarFuturo(d: DatosEvento) {
 const columnas = (d: DatosEvento) => [
   d.titulo, d.resumen, d.descripcion, d.inicio, d.fin, d.lugar, d.municipioId, d.lat, d.lng,
   d.precio === null || d.precio === 0 ? null : Math.round(d.precio * 100), d.publico, d.categoria, d.paraNinos, d.enlace, d.imagen,
+  Boolean(d.inscripcion), d.inscripcion?.plazas ?? null, d.inscripcion?.hasta ?? null,
 ] as const
 
 export function crearEvento(entidadId: number, d: DatosEvento, estado: EstadoEvento, extra: { organizador?: string | null } = {}) {
   const ahora = ahoraIso()
   const r = ejecutar(
     `INSERT INTO eventos (slug, entidad_id, estado, titulo, resumen, descripcion, inicio, fin, lugar, municipio_id, lat, lng,
-       precio_centimos, publico, categoria, para_ninos, enlace, imagen, escena, organizador, enviado, creado, actualizado)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       precio_centimos, publico, categoria, para_ninos, enlace, imagen, inscripcion, plazas, inscripcion_hasta,
+       escena, organizador, enviado, creado, actualizado)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     nuevoSlug(), entidadId, estado, ...columnas(d), escenaPorDefecto(d.categoria), extra.organizador ?? null,
     estado === 'borrador' ? null : ahora, ahora, ahora,
   )
@@ -140,7 +164,8 @@ export function crearEvento(entidadId: number, d: DatosEvento, estado: EstadoEve
 export function guardarDatos(id: number, d: DatosEvento) {
   ejecutar(
     `UPDATE eventos SET titulo = ?, resumen = ?, descripcion = ?, inicio = ?, fin = ?, lugar = ?, municipio_id = ?, lat = ?, lng = ?,
-       precio_centimos = ?, publico = ?, categoria = ?, para_ninos = ?, enlace = ?, imagen = ?, actualizado = ? WHERE id = ?`,
+       precio_centimos = ?, publico = ?, categoria = ?, para_ninos = ?, enlace = ?, imagen = ?,
+       inscripcion = ?, plazas = ?, inscripcion_hasta = ?, actualizado = ? WHERE id = ?`,
     ...columnas(d), ahoraIso(), id,
   )
 }

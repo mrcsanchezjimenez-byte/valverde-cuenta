@@ -45,7 +45,14 @@ export const esquemaEvento = z.object({
   paraNinos: z.boolean(),
   enlace: enlaceWeb,
   imagen: z.string().regex(/^[a-z0-9]{24}$/, 'La imagen no es válida.').nullable(),
+  inscripcion: z.object({
+    plazas: z.number().int().min(1, 'Al menos una plaza.').max(5000, 'Demasiadas plazas.').nullable(),
+    hasta: fechaHora.nullable(),
+  }).strict().nullable(),
 }).strict()
+  .refine((e) => !e.inscripcion?.hasta || e.inscripcion.hasta <= e.inicio, {
+    message: 'La inscripción tiene que cerrarse antes de que empiece el evento.', path: ['inscripcion'],
+  })
   .refine((e) => e.fin > e.inicio, { message: 'El final tiene que ser después del inicio.', path: ['fin'] })
   .refine((e) => Date.parse(`${e.fin}:00Z`) - Date.parse(`${e.inicio}:00Z`) <= 31 * 86400_000, {
     message: 'Un evento no puede durar más de un mes.', path: ['fin'],
@@ -98,3 +105,14 @@ export async function leer<T extends z.ZodType>(c: C, esquema: T): Promise<z.out
   if (!r.success) throw fallo(400, r.error.issues[0]?.message ?? 'Hay datos que no son válidos.')
   return r.data
 }
+
+/** Quien se apunta a un evento: nombre y al menos un teléfono o un correo. */
+export const nuevaInscripcion = z.object({
+  nombre: linea(2, 80, 'Nombre'),
+  email: z.string().trim().toLowerCase().max(254).refine((s) => s === '' || z.email().safeParse(s).success, 'El correo no es válido.'),
+  telefono: z.string().trim().refine((s) => s === '' || /^\+?[\d\s]{9,15}$/.test(s), 'El teléfono no es válido.'),
+  personas: z.number().int().min(1).max(6, 'Como mucho 6 personas por inscripción.'),
+  acepta: z.literal(true, 'Hay que aceptar el uso de los datos.'),
+  /** Campo trampa: las personas no lo ven; si viene relleno, es un robot. */
+  web: z.string().max(200).optional(),
+}).strict().refine((i) => i.email || i.telefono, { message: 'Deja un teléfono o un correo, por si hay cambios.', path: ['telefono'] })

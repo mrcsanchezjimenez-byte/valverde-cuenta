@@ -36,7 +36,7 @@ transaccion(() => {
     const id = crearEvento(interna, {
       titulo: e.titulo, resumen: e.resumen, descripcion: e.descripcion, inicio: mover(e.inicio), fin: mover(e.fin),
       lugar: e.lugar, municipioId: m.id, lat: e.lat, lng: e.lng, precio: e.precio, publico: e.publico,
-      categoria: e.categoria, paraNinos: Boolean(e.paraNinos), enlace: '', imagen: null,
+      categoria: e.categoria, paraNinos: Boolean(e.paraNinos), enlace: '', imagen: null, inscripcion: null,
     }, 'publicado', { organizador: `${e.organizador} (ejemplo)` })
     ejecutar('UPDATE eventos SET escena = ?, enlaza_yincana = ? WHERE id = ?', e.escena, Boolean(e.enlazaYincana), id)
   }

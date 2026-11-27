@@ -233,4 +233,27 @@ export const MIGRACIONES: string[] = [
   );
   CREATE INDEX avisos_entidad ON avisos(entidad_id, leido);
   `,
+
+  /* 4 · Inscripciones: la entidad decide si hay que apuntarse y cuántas plazas hay */ `
+  ALTER TABLE eventos ADD COLUMN inscripcion INTEGER NOT NULL DEFAULT 0;
+  -- NULL: sin límite.
+  ALTER TABLE eventos ADD COLUMN plazas INTEGER;
+  ALTER TABLE eventos ADD COLUMN inscripcion_hasta TEXT;
+
+  -- Datos personales: los ve la entidad que organiza y se borran un mes después del evento.
+  CREATE TABLE inscripciones (
+    id INTEGER PRIMARY KEY,
+    evento_id INTEGER NOT NULL REFERENCES eventos(id) ON DELETE CASCADE,
+    -- Código secreto de quien se apunta, para consultar o cancelar sin cuenta. Solo se guarda su huella.
+    codigo_hash TEXT NOT NULL UNIQUE,
+    nombre TEXT NOT NULL,
+    email TEXT NOT NULL DEFAULT '',
+    telefono TEXT NOT NULL DEFAULT '',
+    personas INTEGER NOT NULL CHECK (personas BETWEEN 1 AND 20),
+    estado TEXT NOT NULL CHECK (estado IN ('confirmada','espera','cancelada')),
+    creado TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    cancelado TEXT
+  );
+  CREATE INDEX inscripciones_evento ON inscripciones(evento_id, estado);
+  `,
 ]

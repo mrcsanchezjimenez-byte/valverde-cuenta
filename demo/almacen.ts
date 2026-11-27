@@ -10,7 +10,7 @@
  */
 import { escenaPorDefecto } from '../compartido/categorias.ts'
 import { EVENTOS } from '../compartido/ejemplo.ts'
-import type { AvisoEntidad, DatosEvento, EstadoEntidad, Evento, EventoGestion, Municipio, Rol } from '../compartido/tipos.ts'
+import type { AvisoEntidad, DatosEvento, EstadoEntidad, EstadoInscripcion, Evento, EventoGestion, Inscripcion, MiInscripcion, Municipio, Rol } from '../compartido/tipos.ts'
 import { CENTRO_VALVERDE, distanciaKm } from '../compartido/tipos.ts'
 
 export interface UsuarioDemo {
@@ -53,6 +53,8 @@ export interface ApunteDemo {
   usuarioId: number | null
 }
 
+export type InscripcionDemo = Inscripcion & { eventoId: number; codigo: string }
+
 export interface AlmacenDemo {
   version: number
   usuarios: UsuarioDemo[]
@@ -63,6 +65,7 @@ export interface AlmacenDemo {
   avisos: AvisoDemo[]
   /** Imágenes subidas en la demo: clave → data: URL (reducidas para que quepan en el navegador). */
   imagenes: Record<string, string>
+  inscripciones: InscripcionDemo[]
   sesion: { usuarioId: number; segundoFactor: boolean } | null
   siguienteId: number
 }
@@ -74,7 +77,7 @@ export const CUENTAS_DEMO = {
 }
 
 const CLAVE = 'vc.demo'
-const VERSION = 2
+const VERSION = 3
 const ahora = () => new Date().toISOString().replace(/\.\d+Z$/, 'Z')
 
 /** Fecha local (AAAA-MM-DDTHH:mm) dentro de `dias` días, a la hora indicada. */
@@ -124,7 +127,7 @@ function sembrar(): AlmacenDemo {
       id: id++, slug: e.id, estado: 'publicado' as const, entidadId: 1, organizador: e.organizador,
       titulo: e.titulo, resumen: e.resumen, descripcion: e.descripcion, inicio: mover(e.inicio), fin: mover(e.fin),
       lugar: e.lugar, municipioId: m.id, lat: e.lat, lng: e.lng, precio: e.precio, publico: e.publico,
-      categoria: e.categoria, paraNinos: Boolean(e.paraNinos), enlace: '', imagen: null, escena: e.escena,
+      categoria: e.categoria, paraNinos: Boolean(e.paraNinos), enlace: '', imagen: null, inscripcion: null, escena: e.escena,
       enlazaYincana: Boolean(e.enlazaYincana), motivo: null, cambios: null, creado: t, actualizado: t, enviado: t,
     }]
   })
@@ -138,13 +141,13 @@ function sembrar(): AlmacenDemo {
       titulo: 'Cata de dulces de Navidad', resumen: 'Las socias de la peña preparan los dulces de siempre para probarlos.',
       descripcion: 'Una tarde para probar pestiños, roscos y polvorones caseros, con las recetas de las abuelas del pueblo.\n\nPlazas limitadas.',
       inicio: dentroDe(9, '18:00'), fin: dentroDe(9, '20:00'), lugar: 'Sede de la Peña El Boto', municipioId: 1, lat: 37.5741, lng: -6.7512,
-      precio: null, publico: 'Todos los públicos', categoria: 'fiestas', paraNinos: true, enlace: '', imagen: null,
+      precio: null, publico: 'Todos los públicos', categoria: 'fiestas', paraNinos: true, enlace: '', imagen: null, inscripcion: null,
     }),
     base({
       titulo: 'Ruta al Pozo de la Nieve', resumen: 'Senderismo de dificultad media con salida desde Calañas.',
       descripcion: 'Doce kilómetros por caminos del Andévalo. Lleva agua, calzado de montaña y algo de comer.',
       inicio: dentroDe(12, '09:00'), fin: dentroDe(12, '14:00'), lugar: 'Plaza de España', municipioId: 3, lat: 37.6553, lng: -6.8789,
-      precio: 3, publico: 'Adultos', categoria: 'deporte', paraNinos: false, enlace: '', imagen: null, estado: 'publicado', entidadId: 4,
+      precio: 3, publico: 'Adultos', categoria: 'deporte', paraNinos: false, enlace: '', imagen: null, inscripcion: null, estado: 'publicado', entidadId: 4,
     }),
   )
   // Un evento publicado con cambios propuestos: así se ve la comparación en el panel.
@@ -152,13 +155,29 @@ function sembrar(): AlmacenDemo {
     titulo: 'Concierto de la Peña', resumen: 'La peña celebra su aniversario con música en directo.',
     descripcion: 'Actuación de grupos locales para celebrar el aniversario de la peña. Habrá ambigú.',
     inicio: dentroDe(16, '20:00'), fin: dentroDe(16, '23:00'), lugar: 'Plaza de la Constitución', municipioId: 1, lat: 37.573977, lng: -6.74894,
-    precio: null, publico: 'Todos los públicos', categoria: 'musica', paraNinos: false, enlace: '', imagen: null, estado: 'publicado',
+    precio: null, publico: 'Todos los públicos', categoria: 'musica', paraNinos: false, enlace: '', imagen: null, inscripcion: null, estado: 'publicado',
   })
   conCambios.cambios = { ...conCambios, inicio: dentroDe(16, '21:00'), fin: dentroDe(16, '23:30'), titulo: 'Concierto aniversario de la Peña' }
   eventos.push(conCambios)
+  // Un evento con inscripción y gente ya apuntada, para ver la lista en el panel.
+  const taller = base({
+    titulo: 'Taller de botos para principiantes', resumen: 'Un artesano enseña a coser una pieza de boto valverdeño.',
+    descripcion: 'Dos horas para conocer el oficio del boto: el cuero, las herramientas y las puntadas de siempre.\n\nPlazas limitadas: hay que apuntarse.',
+    inicio: dentroDe(11, '18:00'), fin: dentroDe(11, '20:00'), lugar: 'Sede de la Peña El Boto', municipioId: 1, lat: 37.5741, lng: -6.7512,
+    precio: 5, publico: 'Mayores de 14 años', categoria: 'charlas', paraNinos: false, enlace: '', imagen: null,
+    inscripcion: { plazas: 12, hasta: null }, estado: 'publicado',
+  })
+  eventos.push(taller)
+  const inscripciones: InscripcionDemo[] = [
+    ['María Romero', '600100200', '', 2], ['José Manuel Vázquez', '', 'jmv@ejemplo.es', 1], ['Lucía Garrido', '600300400', '', 3],
+    ['Francisco Díaz', '600500600', 'paco@ejemplo.es', 1], ['Inés Bravo', '600700800', '', 2],
+  ].map(([nombre, telefono, email, personas], i) => ({
+    id: 500 + i, eventoId: taller.id, codigo: `demo-${i}`, nombre: String(nombre), telefono: String(telefono), email: String(email),
+    personas: Number(personas), estado: 'confirmada' as const, creado: t,
+  }))
 
   return {
-    version: VERSION, usuarios, entidades, eventos, municipios: MUNICIPIOS, sesion: null, siguienteId: 1000, imagenes: {},
+    version: VERSION, usuarios, entidades, eventos, municipios: MUNICIPIOS, sesion: null, siguienteId: 1000, imagenes: {}, inscripciones,
     avisos: [{
       id: 1, entidadId: 2, tipo: 'bien', titulo: 'Entidad verificada', leido: false, eventoId: null, creado: t,
       texto: '«Peña Cultural El Boto» ya puede publicar en la agenda. Cada evento lo revisaremos antes de que salga.',
@@ -213,6 +232,89 @@ export function eventosPublicosDemo(): Evento[] {
       ...(e.paraNinos ? { paraNinos: true } : {}), ...(e.enlazaYincana ? { enlazaYincana: true } : {}),
       ...(e.enlace ? { enlace: e.enlace } : {}), ...(e.estado === 'cancelado' ? { cancelado: true } : {}),
       ...(e.imagen && a.imagenes[e.imagen] ? { imagen: a.imagenes[e.imagen] } : {}),
+      ...(e.inscripcion ? { inscripcion: estadoInscripcionDemo(a, e) } : {}),
     }
   })
+}
+
+// ——— Inscripciones en la demo (mismas reglas que el servidor) ———
+
+const ahoraLocalDemo = () => {
+  const d = new Date()
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`
+}
+
+const usadas = (a: AlmacenDemo, eventoId: number) =>
+  a.inscripciones.filter((i) => i.eventoId === eventoId && i.estado === 'confirmada').reduce((t, i) => t + i.personas, 0)
+
+export function estadoInscripcionDemo(a: AlmacenDemo, e: EventoDemo) {
+  const plazas = e.inscripcion?.plazas ?? null
+  const hasta = e.inscripcion?.hasta ?? null
+  return {
+    plazas, hasta, libres: plazas === null ? null : Math.max(0, plazas - usadas(a, e.id)),
+    abierta: e.estado === 'publicado' && ahoraLocalDemo() < (hasta ?? e.inicio),
+  }
+}
+
+export class ErrorDemo extends Error {}
+
+export function inscribirDemo(slug: string, d: { nombre: string; email: string; telefono: string; personas: number }) {
+  const a = leerAlmacen()
+  const e = a.eventos.find((x) => x.slug === slug && x.estado === 'publicado' && x.inscripcion)
+  if (!e) throw new ErrorDemo('Este evento no admite inscripciones.')
+  const estado = estadoInscripcionDemo(a, e)
+  if (!estado.abierta) throw new ErrorDemo('La inscripción para este evento ya está cerrada.')
+  const tel = d.telefono.replace(/\D/g, '')
+  if (a.inscripciones.some((i) => i.eventoId === e.id && i.estado !== 'cancelada' && ((d.email && i.email === d.email) || (tel && i.telefono === tel)))) {
+    throw new ErrorDemo('Ya hay una inscripción con ese teléfono o correo para este evento.')
+  }
+  const plaza: EstadoInscripcion = estado.libres === null || estado.libres >= d.personas ? 'confirmada' : 'espera'
+  const codigo = `demo-${a.siguienteId++}-${Math.random().toString(36).slice(2, 10)}`
+  a.inscripciones.push({ id: a.siguienteId++, eventoId: e.id, codigo, nombre: d.nombre, email: d.email, telefono: tel, personas: d.personas, estado: plaza, creado: new Date().toISOString() })
+  guardarAlmacen(a)
+  const posicion = plaza === 'espera' ? a.inscripciones.filter((i) => i.eventoId === e.id && i.estado === 'espera').length : null
+  return { codigo, estado: plaza, posicion }
+}
+
+export function verInscripcionDemo(codigo: string): MiInscripcion {
+  const a = leerAlmacen()
+  const i = a.inscripciones.find((x) => x.codigo === codigo)
+  const e = i && a.eventos.find((x) => x.id === i.eventoId)
+  if (!i || !e) throw new ErrorDemo('No encontramos esa inscripción.')
+  return { codigo, evento: e.slug, titulo: e.titulo, inicio: e.inicio, personas: i.personas, estado: i.estado }
+}
+
+/** Cancela y, si queda sitio, sube la primera de la lista de espera (si cabe). */
+export function cancelarInscripcionDemo(a: AlmacenDemo, i: InscripcionDemo) {
+  i.estado = 'cancelada'
+  const e = a.eventos.find((x) => x.id === i.eventoId)
+  const plazas = e?.inscripcion?.plazas
+  if (!e || plazas == null) return
+  let libres = plazas - usadas(a, e.id)
+  for (const x of a.inscripciones.filter((y) => y.eventoId === e.id && y.estado === 'espera')) {
+    if (x.personas > libres) break
+    x.estado = 'confirmada'
+    libres -= x.personas
+  }
+}
+
+export function cancelarPorCodigoDemo(codigo: string) {
+  const a = leerAlmacen()
+  const i = a.inscripciones.find((x) => x.codigo === codigo)
+  if (!i) throw new ErrorDemo('No encontramos esa inscripción.')
+  if (i.estado !== 'cancelada') cancelarInscripcionDemo(a, i)
+  guardarAlmacen(a)
+  return verInscripcionDemo(codigo)
+}
+
+export function listaInscripcionesDemo(a: AlmacenDemo, eventoId: number) {
+  const orden = { confirmada: 0, espera: 1, cancelada: 2 }
+  const lista = a.inscripciones.filter((i) => i.eventoId === eventoId).sort((x, y) => orden[x.estado] - orden[y.estado])
+  const suma = (s: EstadoInscripcion) => lista.filter((i) => i.estado === s).reduce((t, i) => t + i.personas, 0)
+  return {
+    lista: lista.map(({ eventoId: _, codigo: __, ...i }) => i),
+    confirmadas: suma('confirmada'), enEspera: suma('espera'),
+    plazas: a.eventos.find((e) => e.id === eventoId)?.inscripcion?.plazas ?? null,
+  }
 }

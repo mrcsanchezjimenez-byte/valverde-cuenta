@@ -6,6 +6,7 @@ import { fecha, fechaLarga, hora } from '../datos/fechas'
 import { MODO_DEMO, useEvento } from '../datos/repositorio'
 import { alternarGuardado, useGuardados } from '../estado/almacen'
 import { AVISO_AGENDA } from '../../compartido/tipos.ts'
+import { BloqueInscripcion } from '../componentes/Inscripcion'
 import { abrirEnlace, abrirIndicaciones, anadirACalendario, compartir } from '../nativo'
 
 export function FichaEvento() {
@@ -75,6 +76,8 @@ export function FichaEvento() {
           <span className="circulo-icono"><Icono n="entrada" tam={20} /></span>
           <div><b>{textoPrecio(evento)}</b><small>{evento.publico}</small></div>
         </div>
+
+        {evento.inscripcion && <BloqueInscripcion evento={evento} />}
 
         {evento.cancelado && <p className="aviso-cancelado">La organización ha cancelado este evento.</p>}
         <p className="ficha-texto">{evento.descripcion}</p>
