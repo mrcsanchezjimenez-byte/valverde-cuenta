@@ -10,6 +10,7 @@ import {
 } from '../eventos.ts'
 import { fotosDe, fotosPendientes, leerFoto, revisarFoto } from '../fotos.ts'
 import { listaInscripciones } from '../inscripciones.ts'
+import { cuantasHistoriasPendientes, historiasPendientes } from './historias.ts'
 import { anotar } from '../registro.ts'
 import { exigir } from '../seguridad/sesiones.ts'
 import { ajustesDireccion, esquemaEvento, leer, motivo, municipio } from '../validacion.ts'
@@ -80,6 +81,7 @@ direccion.get('/pendientes', (c) => c.json({
   eventos: listarEventos("ev.estado = 'pendiente'").map(aGestion),
   cambios: listarEventos("ev.estado = 'publicado' AND ev.cambios IS NOT NULL").map(aGestion),
   fotos: fotosPendientes(),
+  historias: historiasPendientes(),
 }))
 
 direccion.get('/resumen', (c) => {
@@ -88,7 +90,8 @@ direccion.get('/resumen', (c) => {
     pendientes: n("SELECT COUNT(*) AS n FROM eventos WHERE estado = 'pendiente'")
       + n("SELECT COUNT(*) AS n FROM eventos WHERE estado = 'publicado' AND cambios IS NOT NULL")
       + n("SELECT COUNT(*) AS n FROM entidades WHERE estado = 'pendiente'")
-      + n("SELECT COUNT(DISTINCT evento_id) AS n FROM fotos_evento WHERE estado = 'pendiente'"),
+      + n("SELECT COUNT(DISTINCT evento_id) AS n FROM fotos_evento WHERE estado = 'pendiente'")
+      + cuantasHistoriasPendientes(),
   })
 })
 

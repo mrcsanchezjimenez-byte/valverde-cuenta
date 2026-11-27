@@ -12,6 +12,7 @@ import type { Entorno } from './contexto.ts'
 import { cuenta } from './rutas/cuenta.ts'
 import { direccion } from './rutas/direccion.ts'
 import { entidad } from './rutas/entidad.ts'
+import { historiasDireccion, historiasPublico } from './rutas/historias.ts'
 import { imagenes } from './rutas/imagenes.ts'
 import { publico } from './rutas/publico.ts'
 import { exigir } from './seguridad/sesiones.ts'
@@ -46,27 +47,38 @@ export function crearApp() {
     strictTransportSecurity: config.produccion ? 'max-age=63072000; includeSubDomains' : false,
     referrerPolicy: 'same-origin',
     crossOriginResourcePolicy: false,
-    permissionsPolicy: { camera: [], microphone: [], geolocation: [], payment: [] },
+    // El micrófono solo lo usa el propio panel, para grabar entrevistas.
+    permissionsPolicy: { camera: [], microphone: ['self'], geolocation: [], payment: [] },
   }))
 
   // ——— API ———
   // Las peticiones normales son pequeñas; solo la subida de imágenes admite más (una foto ya reducida).
   const limiteNormal = bodyLimit({ maxSize: 64 * 1024, onError: (c) => c.json({ error: 'Demasiados datos.' }, 413) })
   const limiteImagen = bodyLimit({ maxSize: 7 * 1024 * 1024, onError: (c) => c.json({ error: 'La imagen pesa demasiado (máximo 6 MB).' }, 413) })
-  app.use('/api/*', (c, next) => (c.req.method === 'POST' && c.req.path === '/api/imagenes' ? limiteImagen : limiteNormal)(c, next))
+  // Una historia puede traer hasta 4 fotos y un audio largo.
+  const limiteHistoria = bodyLimit({ maxSize: 46 * 1024 * 1024, onError: (c) => c.json({ error: 'Los archivos pesan demasiado en total.' }, 413) })
+  const SUBIDAS_HISTORIA = new Set(['/api/publico/historias', '/api/direccion/historias'])
+  app.use('/api/*', (c, next) => {
+    if (c.req.method !== 'POST') return limiteNormal(c, next)
+    if (c.req.path === '/api/imagenes') return limiteImagen(c, next)
+    if (SUBIDAS_HISTORIA.has(c.req.path)) return limiteHistoria(c, next)
+    return limiteNormal(c, next)
+  })
 
   /**
    * Contra peticiones falsificadas desde otras webs: toda escritura debe venir en JSON, con una
    * cabecera propia (que un formulario ajeno no puede poner) y, si el navegador dice su origen, desde el panel.
    */
   app.use('/api/*', async (c, next) => {
+    const multipart = (c.req.header('content-type') ?? '').startsWith('multipart/form-data')
     if (!SEGUROS.has(c.req.method) && c.req.path.startsWith('/api/publico/')) {
-      if (!(c.req.header('content-type') ?? '').startsWith('application/json')) return c.json({ error: 'Petición no permitida.' }, 403)
+      const json = (c.req.header('content-type') ?? '').startsWith('application/json')
+      if (!json && !(multipart && c.req.path === '/api/publico/historias')) return c.json({ error: 'Petición no permitida.' }, 403)
     } else if (!SEGUROS.has(c.req.method)) {
       const origen = c.req.header('origin')
       // El panel siempre manda JSON (aunque sea {}) o, para subir imágenes, un formulario multipart; DELETE va sin cuerpo.
       const tipo = c.req.header('content-type') ?? ''
-      const valido = tipo.startsWith('application/json') || (c.req.path === '/api/imagenes' && tipo.startsWith('multipart/form-data'))
+      const valido = tipo.startsWith('application/json') || (multipart && (c.req.path === '/api/imagenes' || c.req.path === '/api/direccion/historias'))
       if (c.req.header('x-vc') !== '1' || (origen && origen !== config.origenGestion) || (!valido && c.req.method !== 'DELETE')) {
         return c.json({ error: 'Petición no permitida.' }, 403)
       }
@@ -76,9 +88,11 @@ export function crearApp() {
   })
 
   app.route('/api/publico', publico)
+  app.route('/api/publico', historiasPublico)
   app.route('/api/cuenta', cuenta)
   app.route('/api/entidad', entidad)
   app.route('/api/direccion', direccion)
+  app.route('/api/direccion', historiasDireccion)
   app.route('/api/imagenes', imagenes)
 
   /** Municipios con los inactivos incluidos: para dirección. Los demás usan /api/publico/municipios. */

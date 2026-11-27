@@ -1,8 +1,13 @@
 import { randomBytes } from 'node:crypto'
+import { mkdtempSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 
-// Antes de cargar nada del servidor: modo pruebas y una clave de cifrado de usar y tirar.
+// Antes de cargar nada del servidor: modo pruebas, una clave de usar y tirar y una carpeta
+// temporal para los archivos (así las pruebas nunca tocan los datos de verdad).
 process.env.VC_PRUEBAS = '1'
 process.env.VC_CLAVE ??= randomBytes(32).toString('base64')
+process.env.VC_DATOS ??= mkdtempSync(join(tmpdir(), 'valverde-pruebas-'))
 
 const { iniciarBd, ejecutar, uno } = await import('../bd.ts')
 const { crearApp } = await import('../app.ts')

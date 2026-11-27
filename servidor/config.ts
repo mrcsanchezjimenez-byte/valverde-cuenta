@@ -38,6 +38,8 @@ export const config = {
   /** Dirección pública del panel de gestión; se usa en los enlaces de los correos. */
   urlGestion,
   origenGestion: new URL(urlGestion).origin,
+  /** Dirección pública de la app (web). Va dentro de los QR de las placas: cambiarla obliga a reimprimirlas. */
+  urlApp: process.env.VC_URL_APP ?? 'http://localhost:5273/valverde-cuenta/',
   /** Solo si el servidor está detrás de un proxy de confianza se lee la IP de X-Forwarded-For. */
   detrasDeProxy: process.env.VC_PROXY === '1',
 }

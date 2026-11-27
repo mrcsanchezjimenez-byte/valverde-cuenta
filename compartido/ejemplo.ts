@@ -149,3 +149,33 @@ export const EVENTOS: Evento[] = [
     organizador: 'Colectivo local', precio: null, publico: 'Todos los públicos', categoria: 'fiestas', paraNinos: true, escena: 'fiesta',
   },
 ]
+
+/**
+ * LUGARES E HISTORIAS DE EJEMPLO para la demostración y `npm run sembrar`.
+ * Los lugares son reales (las paradas de la yincana); las historias son inventadas.
+ */
+export const LUGARES_EJEMPLO = [
+  { slug: 'ermita-de-la-trinidad', nombre: 'Ermita de la Trinidad', direccion: 'Calle Trinidad, 50', lat: 37.572787, lng: -6.756766, anfitrion: 'Parroquia',
+    descripcion: 'Pequeña ermita a la entrada del pueblo, lugar de paso de romerías y de promesas.' },
+  { slug: 'parroquia-del-reposo', nombre: 'Parroquia de Nuestra Señora del Reposo', direccion: 'Calle Real de Arriba', lat: 37.572325, lng: -6.753607, anfitrion: 'Parroquia',
+    descripcion: 'La iglesia mayor del pueblo. Sus campanas marcaron durante siglos las horas de trabajo y de descanso.' },
+  { slug: 'mercado-municipal', nombre: 'Mercado Municipal', direccion: 'Calle Real de Arriba', lat: 37.573842, lng: -6.753148, anfitrion: 'Ayuntamiento',
+    descripcion: 'Puestos de pescado, carne y verdura donde se ha hecho la compra de toda la vida.' },
+  { slug: 'plaza-de-san-pedro', nombre: 'Plaza de San Pedro', direccion: 'Plaza de San Pedro', lat: 37.576271, lng: -6.754427, anfitrion: '',
+    descripcion: 'Plaza de juegos de generaciones de chiquillos y de charlas a la fresca.' },
+  { slug: 'casa-direccion', nombre: 'Casa Dirección', direccion: 'Carretera de Zalamea', lat: 37.580187, lng: -6.751342, anfitrion: 'Ayuntamiento',
+    descripcion: 'Edificio de estilo inglés ligado a la época del ferrocarril minero.' },
+]
+
+export const HISTORIAS_EJEMPLO = [
+  { lugar: 'ermita-de-la-trinidad', titulo: 'Los geranios de la abuela', epoca: '1960–1980', autor: 'Carmen (ejemplo)',
+    texto: 'De chica, mi abuela me traía aquí cada domingo con un ramo de geranios de su patio. Decía que quien entraba con las manos vacías salía con la cabeza llena de cuentas pendientes.\n\nTodavía hoy, cuando paso por la puerta, me acuerdo del olor de aquellos geranios.' },
+  { lugar: 'parroquia-del-reposo', titulo: 'La hora de las campanas', epoca: '1936–1960', autor: 'Antonio (ejemplo)',
+    texto: 'Mi padre decía la hora por las campanas, porque el reloj de casa siempre iba mal. Cuando repicaban a mediodía, soltaba las herramientas y nos íbamos todos a comer.' },
+  { lugar: 'mercado-municipal', titulo: 'El papelito de la compra', epoca: '1960–1980', autor: '',
+    texto: 'Mi madre me mandaba a por el pescado los viernes con la cuenta apuntada en un papelito. Yo lo perdía siempre, así que la pescadera ya se sabía de memoria lo que comíamos en casa.' },
+  { lugar: 'plaza-de-san-pedro', titulo: 'Farola encendida, a cenar', epoca: '1960–1980', autor: 'José María (ejemplo)',
+    texto: 'Aquí jugábamos los chiquillos hasta que se encendían las farolas. Esa era la norma en todas las casas: farola encendida, a cenar. Y el que llegaba tarde, se quedaba sin postre.' },
+  { lugar: 'casa-direccion', titulo: 'Cuatro palabras de inglés', epoca: '1936–1960', autor: 'Dolores (ejemplo)',
+    texto: 'Mi abuelo trabajó con los ingleses y aprendió cuatro palabras de su idioma. Con esas cuatro se apañaba para todo, y en casa nos daba los buenos días en inglés, muy serio.' },
+]

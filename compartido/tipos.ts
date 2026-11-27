@@ -263,3 +263,50 @@ export interface FotoEvento {
 }
 
 export const MAX_FOTOS_EVENTO = 30
+
+/** Una historia vista desde el panel de dirección (con lo privado). */
+export interface ArchivoGestion extends ArchivoPublico {
+  id: number
+  mime: string
+  bytes: number
+  publicar: boolean
+  orden: number
+}
+
+export interface HistoriaGestion {
+  id: number
+  slug: string
+  estado: EstadoHistoria
+  origen: 'web' | 'entrevista'
+  titulo: string
+  texto: string
+  epoca: string
+  lugarId: number | null
+  lugarNombre: string | null
+  lugarTexto: string
+  firma: 'nombre' | 'anonimo'
+  autor: string
+  contactoNombre: string
+  contactoEmail: string
+  contactoTelefono: string
+  consentimiento: { version: string; aceptados: Consentimiento[]; fecha: string }
+  motivo: string | null
+  nota: string
+  archivos: ArchivoGestion[]
+  creado: string
+  actualizado: string
+}
+
+export interface LugarGestion extends Lugar {
+  id: number
+  anfitrion: string
+  activo: boolean
+  pendientes: number
+  escaneosTotal: number
+  escaneos30: number
+  /** Lo que lleva dentro el código QR de la placa. */
+  urlQr: string
+}
+
+/** Firma pública de una historia. */
+export const firmaPublica = (firma: 'nombre' | 'anonimo', autor: string) => (firma === 'nombre' && autor ? autor : 'Un vecino o vecina de Valverde')
