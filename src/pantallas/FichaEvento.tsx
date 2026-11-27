@@ -6,6 +6,7 @@ import { fecha, fechaLarga, hora } from '../datos/fechas'
 import { MODO_DEMO, useEvento } from '../datos/repositorio'
 import { alternarGuardado, useGuardados } from '../estado/almacen'
 import { AVISO_AGENDA } from '../../compartido/tipos.ts'
+import { Galeria } from '../componentes/Galeria'
 import { BloqueInscripcion } from '../componentes/Inscripcion'
 import { abrirEnlace, abrirIndicaciones, anadirACalendario, compartir } from '../nativo'
 
@@ -87,6 +88,8 @@ export function FichaEvento() {
           </button>
         )}
 
+        {!!evento.fotos?.length && <Galeria fotos={evento.fotos} />}
+
         {evento.enlazaYincana && (
           <Link to="/yincana" className="relacionado">
             <span className="circulo-icono solido"><Icono n="yincana" tam={20} /></span>
@@ -97,11 +100,13 @@ export function FichaEvento() {
         <p className="nota-legal">{AVISO_AGENDA.corto.replace('{organizador}', evento.organizador)}</p>
       </div>
 
-      <div className="ficha-accion">
-        <button className="boton boton-primario boton-ancho" onClick={() => anadirACalendario(evento)}>
-          <Icono n="mas" tam={18} /> Añadir a mi calendario
-        </button>
-      </div>
+      {fecha(evento.fin) >= new Date() && !evento.cancelado && (
+        <div className="ficha-accion">
+          <button className="boton boton-primario boton-ancho" onClick={() => anadirACalendario(evento)}>
+            <Icono n="mas" tam={18} /> Añadir a mi calendario
+          </button>
+        </div>
+      )}
     </div>
   )
 }

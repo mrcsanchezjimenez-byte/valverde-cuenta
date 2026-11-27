@@ -4,6 +4,7 @@ import type { Categoria, DatosEvento, EstadoEvento, Evento, EventoGestion, TipoE
 import { urlImagen } from '../compartido/tipos.ts'
 import { ahoraIso, ahoraLocal, ejecutar, uno, varios } from './bd.ts'
 import { fallo } from './contexto.ts'
+import { fotosPublicas } from './fotos.ts'
 
 export interface FilaEvento {
   id: number
@@ -118,7 +119,12 @@ export const listarEventos = (donde: string, ...vs: (string | number)[]) =>
 export function eventosPublicos() {
   const desde = ahoraLocal(new Date(Date.now() - 60 * 86400_000))
   const usadas = ocupadas()
-  return listarEventos("ev.estado IN ('publicado','cancelado') AND ev.fin >= ?", desde).map((f) => aPublico(f, usadas.get(f.id) ?? 0))
+  const fotos = fotosPublicas()
+  return listarEventos("ev.estado IN ('publicado','cancelado') AND ev.fin >= ?", desde).map((f) => {
+    const e = aPublico(f, usadas.get(f.id) ?? 0)
+    const suyas = fotos.get(f.id)
+    return suyas ? { ...e, fotos: suyas } : e
+  })
 }
 
 /** Comprueba que el municipio existe y está dentro de la zona de la agenda. */

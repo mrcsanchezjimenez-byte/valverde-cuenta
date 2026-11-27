@@ -5,7 +5,7 @@ import { HojaCompartir } from '../componentes/HojaCompartir'
 import { Icono } from '../componentes/Iconos'
 import { TarjetaGrande } from '../componentes/TarjetasEvento'
 import { CATEGORIAS } from '../../compartido/categorias.ts'
-import { esProximosDias } from '../datos/fechas'
+import { esProximosDias, fecha } from '../datos/fechas'
 import { MODO_DEMO, URL_GESTION, useAgenda } from '../datos/repositorio'
 import { PARADAS, RUTA_MINUTOS } from '../datos/yincana'
 import { useCompletadas } from '../estado/almacen'
@@ -35,7 +35,9 @@ export function BannerYincana() {
 
 export function Inicio() {
   const [compartiendo, setCompartiendo] = useState(false)
-  const { proximos, estado } = useAgenda()
+  const { proximos, todos, estado } = useAgenda()
+  const ahora = new Date()
+  const conFotos = todos.filter((e) => e.fotos?.length && fecha(e.fin) < ahora).reverse().slice(0, 6)
   const semana = proximos.filter((e) => esProximosDias(e, 7))
   const hayEstaSemana = semana.length > 0
   const destacados = (hayEstaSemana ? semana : proximos).slice(0, 6)
@@ -82,6 +84,20 @@ export function Inicio() {
       </div>
 
       <BannerYincana />
+
+      {!!conFotos.length && (
+        <>
+          <div className="titulo-seccion"><h2>Cómo fue</h2></div>
+          <div className="carrusel">
+            {conFotos.map((e) => (
+              <Link key={e.id} to={`/evento/${e.id}`} className="tarjeta-recuerdo">
+                <img src={e.fotos![0].url} alt="" loading="lazy" />
+                <span><b>{e.titulo}</b><small>{e.fotos!.length === 1 ? '1 foto' : `${e.fotos!.length} fotos`}</small></span>
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
 
       <div className="titulo-seccion">
         <h2>Historias de Valverde</h2>

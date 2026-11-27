@@ -8,7 +8,7 @@ import { escenaPorDefecto } from '../../compartido/categorias.ts'
 import { blobADataUrl, prepararFoto } from '../../navegador/medios.ts'
 import type { DatosEvento, EstadoEntidad, EstadoEvento } from '../../compartido/tipos.ts'
 import {
-  CUENTAS_DEMO, cancelarInscripcionDemo, conDistancia, guardarAlmacen, leerAlmacen, listaInscripcionesDemo, type AlmacenDemo, type EntidadDemo, type EventoDemo, type UsuarioDemo,
+  aFotoDemo, CUENTAS_DEMO, cancelarInscripcionDemo, conDistancia, guardarAlmacen, leerAlmacen, listaInscripcionesDemo, type AlmacenDemo, type EntidadDemo, type EventoDemo, type UsuarioDemo,
 } from '../../demo/almacen.ts'
 
 class FalloDemo extends Error {
@@ -301,6 +301,30 @@ ruta('POST', '/entidad/avisos/leidos', (a) => {
   return { ok: true }
 })
 
+ruta('GET', '/entidad/eventos/(\\d+)/fotos', (a, [id]) => {
+  const ev = evento(a, Number(id), entidadDe(a).e.id)
+  return a.fotos.filter((f) => f.eventoId === ev.id).map((f) => aFotoDemo(a, f))
+})
+
+ruta('POST', '/entidad/eventos/(\\d+)/fotos', (a, [id], c) => {
+  const { u, e } = entidadDe(a)
+  const ev = evento(a, Number(id), e.id)
+  if (!['publicado', 'cancelado'].includes(ev.estado)) throw fallo(409, 'Solo se añaden fotos a eventos publicados.')
+  if (!a.imagenes[String(c.imagen)]) throw fallo(400, 'La imagen no es válida. Vuelve a subirla.')
+  const foto = { id: a.siguienteId++, eventoId: ev.id, imagen: String(c.imagen), pie: String(c.pie ?? ''), estado: 'pendiente' as const, creado: ahora() }
+  a.fotos.push(foto)
+  apuntar(a, u.id, 'foto_enviada', `evento:${ev.id}`, ev.titulo)
+  return { id: foto.id }
+})
+
+ruta('DELETE', '/entidad/fotos/(\\d+)', (a, [id]) => {
+  const { e } = entidadDe(a)
+  const f = a.fotos.find((x) => x.id === Number(id))
+  if (!f || a.eventos.find((x) => x.id === f.eventoId)?.entidadId !== e.id) throw fallo(404, 'Esa foto no existe.')
+  a.fotos = a.fotos.filter((x) => x.id !== f.id)
+  return { ok: true }
+})
+
 ruta('GET', '/entidad/eventos/(\\d+)/inscripciones', (a, [id]) => listaInscripcionesDemo(a, evento(a, Number(id), entidadDe(a).e.id).id))
 
 ruta('POST', '/entidad/inscripciones/(\\d+)/cancelar', (a, [id]) => {
@@ -323,6 +347,13 @@ const pendientes = (a: AlmacenDemo) => ({
   entidades: a.entidades.filter((e) => e.estado === 'pendiente').map((e) => aEntidad(a, e)),
   eventos: a.eventos.filter((e) => e.estado === 'pendiente').map((e) => aGestion(a, e)),
   cambios: a.eventos.filter((e) => e.estado === 'publicado' && e.cambios).map((e) => aGestion(a, e)),
+  fotos: [...new Set(a.fotos.filter((f) => f.estado === 'pendiente').map((f) => f.eventoId))].map((eventoId) => {
+    const ev = a.eventos.find((e) => e.id === eventoId)!
+    return {
+      eventoId, titulo: ev.titulo, inicio: ev.inicio, entidadNombre: a.entidades.find((x) => x.id === ev.entidadId)?.nombre ?? '',
+      fotos: a.fotos.filter((f) => f.eventoId === eventoId && f.estado === 'pendiente').map((f) => aFotoDemo(a, f)),
+    }
+  }),
 })
 
 ruta('GET', '/direccion/pendientes', (a) => {
@@ -333,7 +364,7 @@ ruta('GET', '/direccion/pendientes', (a) => {
 ruta('GET', '/direccion/resumen', (a) => {
   direccion(a)
   const p = pendientes(a)
-  return { pendientes: p.entidades.length + p.eventos.length + p.cambios.length }
+  return { pendientes: p.entidades.length + p.eventos.length + p.cambios.length + p.fotos.length }
 })
 
 ruta('GET', '/direccion/eventos', (a, _, __, q) => {
@@ -421,6 +452,46 @@ ruta('POST', '/direccion/eventos/(\\d+)/rechazar-cambios', (a, [id], c) => {
   ev.motivo = String(c.motivo ?? '')
   apuntar(a, u.id, 'cambios_rechazados', `evento:${ev.id}`, ev.motivo)
   return { ok: true, avisado: avisarEntidad(a, ev.entidadId, 'mal', 'Cambios no publicados', `No hemos aplicado los cambios en «${ev.titulo}» por este motivo:\n\n${ev.motivo}\n\nEl evento sigue publicado como estaba.`, ev.id) }
+})
+
+ruta('GET', '/direccion/eventos/(\\d+)/fotos', (a, [id]) => {
+  direccion(a)
+  const ev = evento(a, Number(id))
+  return a.fotos.filter((f) => f.eventoId === ev.id).map((f) => aFotoDemo(a, f))
+})
+
+ruta('POST', '/direccion/fotos/revisar', (a, _, c) => {
+  const u = direccion(a)
+  const aprobar = (c.aprobar as number[]) ?? []
+  const rechazar = (c.rechazar as number[]) ?? []
+  let avisado = ''
+  const porEvento = new Map<number, { si: number; no: number }>()
+  for (const [lista, estado] of [[aprobar, 'publicada'], [rechazar, 'rechazada']] as const) {
+    for (const id of lista) {
+      const f = a.fotos.find((x) => x.id === id)
+      if (!f) continue
+      f.estado = estado
+      const r = porEvento.get(f.eventoId) ?? { si: 0, no: 0 }
+      if (estado === 'publicada') r.si++
+      else r.no++
+      porEvento.set(f.eventoId, r)
+    }
+  }
+  for (const [eventoId, r] of porEvento) {
+    const ev = a.eventos.find((e) => e.id === eventoId)!
+    const partes = [r.si && (r.si === 1 ? 'Se ha publicado 1 foto' : `Se han publicado ${r.si} fotos`), r.no && `${r.no} no (no cumplían las normas o no se veían bien)`]
+    avisado = avisarEntidad(a, ev.entidadId, r.no && !r.si ? 'mal' : 'bien', 'Fotos revisadas', `Hemos revisado las fotos de «${ev.titulo}». ${partes.filter(Boolean).join(' y ')}.`, ev.id)
+  }
+  apuntar(a, u.id, 'fotos_revisadas', '', `${aprobar.length} aprobadas, ${rechazar.length} rechazadas`)
+  return { ok: true, avisado }
+})
+
+ruta('POST', '/direccion/fotos/(\\d+)/retirar', (a, [id]) => {
+  direccion(a)
+  const f = a.fotos.find((x) => x.id === Number(id))
+  if (!f) throw fallo(404, 'Esa foto no existe.')
+  f.estado = 'rechazada'
+  return { ok: true }
 })
 
 ruta('GET', '/direccion/eventos/(\\d+)/inscripciones', (a, [id]) => {

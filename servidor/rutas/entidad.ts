@@ -6,10 +6,11 @@ import {
   aGestion, cambiarEstado, comprobarFuturo, comprobarImagen, comprobarMunicipio, crearEvento, eventoDeEntidad, guardarDatos, listarEventos,
 } from '../eventos.ts'
 import { avisarCancelacionEvento, cancelarPorEntidad, listaInscripciones } from '../inscripciones.ts'
+import { anadirFoto, fotosDe, leerFoto } from '../fotos.ts'
 import { anotar } from '../registro.ts'
 import { permitir } from '../seguridad/limites.ts'
 import { exigir } from '../seguridad/sesiones.ts'
-import { envioEvento, leer } from '../validacion.ts'
+import { envioEvento, leer, nuevaFoto } from '../validacion.ts'
 
 /** Lo que hace una asociación o institución con sus propios eventos. */
 export const entidad = new Hono<Entorno>()
@@ -151,5 +152,32 @@ entidad.post('/inscripciones/:id/cancelar', async (c) => {
   if (!Number.isInteger(id) || id <= 0) throw fallo(404, 'Esa inscripción no existe.')
   await cancelarPorEntidad(id, c.get('usuario').entidadId!)
   anotar(c, c.get('usuario').id, 'inscripcion_cancelada', `inscripcion:${id}`)
+  return c.json({ ok: true })
+})
+
+// ——— Fotos de cómo fue ———
+
+entidad.get('/eventos/:id/fotos', (c) => {
+  const f = eventoDeEntidad(idDe(c), c.get('usuario').entidadId!)
+  return c.json(fotosDe(f.id))
+})
+
+entidad.post('/eventos/:id/fotos', async (c) => {
+  const u = c.get('usuario')
+  const f = eventoDeEntidad(idDe(c), u.entidadId!)
+  exigirVerificada(c)
+  if (!['publicado', 'cancelado'].includes(f.estado)) throw fallo(409, 'Solo se añaden fotos a eventos publicados.')
+  const d = await leer(c, nuevaFoto)
+  comprobarImagen(d.imagen, u)
+  const id = anadirFoto(f.id, d.imagen, d.pie)
+  anotar(c, u.id, 'foto_enviada', `evento:${f.id}`, f.titulo)
+  return c.json({ id }, 201)
+})
+
+entidad.delete('/fotos/:id', (c) => {
+  const foto = leerFoto(Number(c.req.param('id')) || 0)
+  if (foto.entidad_id !== c.get('usuario').entidadId) throw fallo(404, 'Esa foto no existe.')
+  ejecutar('DELETE FROM fotos_evento WHERE id = ?', foto.id)
+  anotar(c, c.get('usuario').id, 'foto_borrada', `evento:${foto.evento_id}`)
   return c.json({ ok: true })
 })

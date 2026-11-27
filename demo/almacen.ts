@@ -10,7 +10,7 @@
  */
 import { escenaPorDefecto } from '../compartido/categorias.ts'
 import { EVENTOS } from '../compartido/ejemplo.ts'
-import type { AvisoEntidad, DatosEvento, EstadoEntidad, EstadoInscripcion, Evento, EventoGestion, Inscripcion, MiInscripcion, Municipio, Rol } from '../compartido/tipos.ts'
+import type { AvisoEntidad, DatosEvento, EstadoEntidad, EstadoFoto, EstadoInscripcion, Evento, EventoGestion, Inscripcion, MiInscripcion, Municipio, Rol } from '../compartido/tipos.ts'
 import { CENTRO_VALVERDE, distanciaKm } from '../compartido/tipos.ts'
 
 export interface UsuarioDemo {
@@ -54,6 +54,19 @@ export interface ApunteDemo {
 }
 
 export type InscripcionDemo = Inscripcion & { eventoId: number; codigo: string }
+export interface FotoDemo { id: number; eventoId: number; imagen: string; pie: string; estado: EstadoFoto; creado: string }
+
+/** «Fotos» de ejemplo dibujadas en SVG, para no meter imágenes reales en la demo. */
+function fotoDibujada(cielo: string, suelo: string, figuras: number, texto: string) {
+  const personas = Array.from({ length: figuras }, (_, i) => {
+    const x = 60 + i * (280 / Math.max(1, figuras - 1 || 1))
+    return `<circle cx='${x}' cy='170' r='13' fill='%235B4433'/><rect x='${x - 13}' y='184' width='26' height='52' rx='11' fill='%235B4433'/>`
+  }).join('')
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300'><rect width='400' height='300' fill='${cielo}'/>`
+    + `<path d='M0 40 Q200 90 400 30' stroke='%235B4433' fill='none'/><rect y='236' width='400' height='64' fill='${suelo}'/>${personas}`
+    + `<text x='20' y='285' font-family='sans-serif' font-size='16' fill='%23fff'>${texto}</text></svg>`
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg.replaceAll('%23', '#'))}`
+}
 
 export interface AlmacenDemo {
   version: number
@@ -66,6 +79,7 @@ export interface AlmacenDemo {
   /** Imágenes subidas en la demo: clave → data: URL (reducidas para que quepan en el navegador). */
   imagenes: Record<string, string>
   inscripciones: InscripcionDemo[]
+  fotos: FotoDemo[]
   sesion: { usuarioId: number; segundoFactor: boolean } | null
   siguienteId: number
 }
@@ -77,7 +91,7 @@ export const CUENTAS_DEMO = {
 }
 
 const CLAVE = 'vc.demo'
-const VERSION = 3
+const VERSION = 4
 const ahora = () => new Date().toISOString().replace(/\.\d+Z$/, 'Z')
 
 /** Fecha local (AAAA-MM-DDTHH:mm) dentro de `dias` días, a la hora indicada. */
@@ -168,6 +182,26 @@ function sembrar(): AlmacenDemo {
     inscripcion: { plazas: 12, hasta: null }, estado: 'publicado',
   })
   eventos.push(taller)
+  // Un evento que ya pasó, con fotos publicadas (para «Cómo fue»), y fotos por revisar en otro.
+  const castanada = base({
+    titulo: 'Castañada en la plaza', resumen: 'Castañas asadas, música y juegos para toda la familia.',
+    descripcion: 'La peña asó castañas para todo el pueblo y hubo juegos tradicionales para los peques.',
+    inicio: dentroDe(-6, '17:00'), fin: dentroDe(-6, '20:00'), lugar: 'Plaza de la Constitución', municipioId: 1, lat: 37.573977, lng: -6.74894,
+    precio: null, publico: 'Todos los públicos', categoria: 'fiestas', paraNinos: true, enlace: '', imagen: null, inscripcion: null, estado: 'publicado',
+  })
+  eventos.push(castanada)
+  const imagenes: Record<string, string> = {
+    demofoto000000000000001: fotoDibujada('%23EBD6A9', '%23C9A871', 5, 'Castañada · la plaza llena'),
+    demofoto000000000000002: fotoDibujada('%23F3E5C0', '%239A5A2B', 3, 'Asando castañas'),
+    demofoto000000000000003: fotoDibujada('%23E2EEE7', '%231E5B43', 6, 'Juegos para los peques'),
+    demofoto000000000000004: fotoDibujada('%23F6EBCD', '%23D4A23C', 4, 'Música al caer la tarde'),
+    demofoto000000000000005: fotoDibujada('%23EBD6A9', '%235B4433', 2, 'Foto por revisar'),
+    demofoto000000000000006: fotoDibujada('%23F3E5C0', '%23A8322A', 7, 'Otra foto por revisar'),
+  }
+  const fotos: FotoDemo[] = [
+    ...[1, 2, 3, 4].map((n) => ({ id: 600 + n, eventoId: castanada.id, imagen: `demofoto00000000000000${n}`, pie: '', estado: 'publicada' as const, creado: t })),
+    ...[5, 6].map((n) => ({ id: 600 + n, eventoId: conCambios.id, imagen: `demofoto00000000000000${n}`, pie: '', estado: 'pendiente' as const, creado: t })),
+  ]
   const inscripciones: InscripcionDemo[] = [
     ['María Romero', '600100200', '', 2], ['José Manuel Vázquez', '', 'jmv@ejemplo.es', 1], ['Lucía Garrido', '600300400', '', 3],
     ['Francisco Díaz', '600500600', 'paco@ejemplo.es', 1], ['Inés Bravo', '600700800', '', 2],
@@ -177,7 +211,7 @@ function sembrar(): AlmacenDemo {
   }))
 
   return {
-    version: VERSION, usuarios, entidades, eventos, municipios: MUNICIPIOS, sesion: null, siguienteId: 1000, imagenes: {}, inscripciones,
+    version: VERSION, usuarios, entidades, eventos, municipios: MUNICIPIOS, sesion: null, siguienteId: 1000, imagenes, inscripciones, fotos,
     avisos: [{
       id: 1, entidadId: 2, tipo: 'bien', titulo: 'Entidad verificada', leido: false, eventoId: null, creado: t,
       texto: '«Peña Cultural El Boto» ya puede publicar en la agenda. Cada evento lo revisaremos antes de que salga.',
@@ -233,6 +267,7 @@ export function eventosPublicosDemo(): Evento[] {
       ...(e.enlace ? { enlace: e.enlace } : {}), ...(e.estado === 'cancelado' ? { cancelado: true } : {}),
       ...(e.imagen && a.imagenes[e.imagen] ? { imagen: a.imagenes[e.imagen] } : {}),
       ...(e.inscripcion ? { inscripcion: estadoInscripcionDemo(a, e) } : {}),
+      ...(fotosPublicadas(a, e.id).length ? { fotos: fotosPublicadas(a, e.id) } : {}),
     }
   })
 }
@@ -318,3 +353,11 @@ export function listaInscripcionesDemo(a: AlmacenDemo, eventoId: number) {
     plazas: a.eventos.find((e) => e.id === eventoId)?.inscripcion?.plazas ?? null,
   }
 }
+
+// ——— Fotos de los eventos en la demo ———
+
+export const fotosPublicadas = (a: AlmacenDemo, eventoId: number) =>
+  a.fotos.filter((f) => f.eventoId === eventoId && f.estado === 'publicada').map((f) => ({ url: a.imagenes[f.imagen] ?? '', pie: f.pie }))
+
+export const aFotoDemo = (a: AlmacenDemo, f: FotoDemo) =>
+  ({ id: f.id, eventoId: f.eventoId, url: a.imagenes[f.imagen] ?? '', pie: f.pie, estado: f.estado, creado: f.creado })

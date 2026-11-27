@@ -38,6 +38,8 @@ export interface Evento {
   imagen?: string
   /** Si hay que apuntarse: cómo está la inscripción ahora mismo. */
   inscripcion?: EstadoInscripcionPublica
+  /** Fotos de cómo fue (ya aprobadas por dirección). */
+  fotos?: { url: string; pie: string }[]
 }
 
 export interface EstadoInscripcionPublica {
@@ -246,3 +248,18 @@ export interface MiInscripcion {
 export const MAX_PERSONAS_INSCRIPCION = 6
 
 export const AVISO_INSCRIPCION = 'Tus datos se usan solo para gestionar esta inscripción: los ve la entidad que organiza y se borran un mes después del evento. No los usamos para nada más.'
+
+// ——— Fotos de los eventos ———
+
+export type EstadoFoto = 'pendiente' | 'publicada' | 'rechazada'
+
+export interface FotoEvento {
+  id: number
+  eventoId: number
+  url: string
+  pie: string
+  estado: EstadoFoto
+  creado: string
+}
+
+export const MAX_FOTOS_EVENTO = 30

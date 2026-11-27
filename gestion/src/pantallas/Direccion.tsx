@@ -1,11 +1,12 @@
 import { useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { CATEGORIAS, escenaPorDefecto } from '../../../compartido/categorias.ts'
-import type { DatosEvento, EstadoEntidad, EstadoEvento, EventoGestion, Municipio } from '../../../compartido/tipos.ts'
+import type { DatosEvento, EstadoEntidad, EstadoEvento, EventoGestion, FotoEvento, Municipio } from '../../../compartido/tipos.ts'
 import { Escena } from '../../../src/componentes/Escena.tsx'
 import { api } from '../api.ts'
 import { avisar } from '../componentes/Avisos.tsx'
 import { FormEvento, eventoVacio } from '../componentes/FormEvento.tsx'
+import { GaleriaDireccion, RevisarFotos } from '../componentes/Fotos.tsx'
 import { Inscritos } from '../componentes/Inscritos.tsx'
 import { Icono } from '../componentes/Iconos.tsx'
 import { Buscador, FilaEntidad, FilaEvento, Filtros, nombreMes, nombreTipo, Vacio } from '../componentes/Listas.tsx'
@@ -56,8 +57,13 @@ function Cabecera({ ante, titulo, children, volver }: { ante?: string; titulo: s
 // ——— Pendientes: la bandeja de trabajo diaria ———
 
 export function Pendientes() {
-  const { datos, error, cargando } = useCarga<{ entidades: Entidad[]; eventos: EventoGestion[]; cambios: EventoGestion[] }>('/direccion/pendientes')
-  const total = datos ? datos.entidades.length + datos.eventos.length + datos.cambios.length : 0
+  const { datos, error, cargando, recargar } = useCarga<{
+    entidades: Entidad[]
+    eventos: EventoGestion[]
+    cambios: EventoGestion[]
+    fotos: { eventoId: number; titulo: string; entidadNombre: string; inicio: string; fotos: FotoEvento[] }[]
+  }>('/direccion/pendientes')
+  const total = datos ? datos.entidades.length + datos.eventos.length + datos.cambios.length + datos.fotos.length : 0
   return (
     <section className="g-pagina">
       <Cabecera ante="Dirección" titulo="Pendientes">
@@ -82,6 +88,14 @@ export function Pendientes() {
           <div className="g-lista">
             {datos.cambios.map((e) => <FilaEvento key={e.id} e={e} a={`/revisar/${e.id}`} extra={<span className="g-marca-cambios">Con cambios propuestos</span>} />)}
           </div>
+        </section>
+      )}
+
+      {!!datos?.fotos.length && (
+        <section className="g-bloque">
+          <h2 className="g-bloque-titulo"><Icono n="imagen" /> Fotos por revisar <span className="g-cuenta-filtro">{datos.fotos.reduce((t, g) => t + g.fotos.length, 0)}</span></h2>
+          <p className="g-suave">Pulsa ✓ o ✕ en cada foto. Lo que no marques se publica con «Publicar el resto». Pulsa una foto para verla en grande.</p>
+          {datos.fotos.map((g) => <RevisarFotos key={g.eventoId} grupo={g} alTerminar={() => void recargar()} />)}
         </section>
       )}
 
@@ -225,6 +239,7 @@ export function RevisarEvento() {
       {e.inscripcion && ['publicado', 'cancelado'].includes(e.estado) && !editando && (
         <Inscritos ruta={`/direccion/eventos/${e.id}/inscripciones`} titulo={e.titulo} soloLectura />
       )}
+      {!editando && <GaleriaDireccion eventoId={e.id} />}
 
       {pidiendo === 'rechazar' && (
         <PedirMotivo titulo="¿Por qué no se publica?" boton="No publicar" alCancelar={() => setPidiendo(null)}

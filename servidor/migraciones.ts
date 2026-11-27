@@ -256,4 +256,18 @@ export const MIGRACIONES: string[] = [
   );
   CREATE INDEX inscripciones_evento ON inscripciones(evento_id, estado);
   `,
+
+  /* 5 · Fotos de cómo fue cada evento: las sube la entidad y dirección las aprueba una a una */ `
+  CREATE TABLE fotos_evento (
+    id INTEGER PRIMARY KEY,
+    evento_id INTEGER NOT NULL REFERENCES eventos(id) ON DELETE CASCADE,
+    imagen TEXT NOT NULL UNIQUE REFERENCES imagenes(clave),
+    pie TEXT NOT NULL DEFAULT '',
+    estado TEXT NOT NULL DEFAULT 'pendiente' CHECK (estado IN ('pendiente','publicada','rechazada')),
+    creado TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
+    revisado TEXT,
+    revisado_por INTEGER
+  );
+  CREATE INDEX fotos_evento_evento ON fotos_evento(evento_id, estado);
+  `,
 ]

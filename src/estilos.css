@@ -304,3 +304,22 @@ img.miniatura { object-fit: cover; background: var(--superficie); }
 .error-formulario { background: #F6DEDA; color: var(--rojo); padding: 10px 12px; border-radius: 10px; font-size: 14px; font-weight: 600; }
 .aviso-espera { background: var(--oro-claro); color: #5E4610; padding: 10px 12px; border-radius: 10px; font-size: 13.5px; }
 .trampa { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+
+/* ——— Fotos de cómo fue ——— */
+.galeria { display: flex; flex-direction: column; gap: 10px; }
+.titulo-galeria { display: flex; align-items: baseline; gap: 8px; font: 700 18px var(--titulos); }
+.titulo-galeria small { font: 500 13px var(--texto); color: var(--suave); }
+.titulo-galeria svg { align-self: center; color: var(--cuero); }
+.galeria-rejilla { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; border-radius: var(--radio); overflow: hidden; }
+.galeria-rejilla button { position: relative; aspect-ratio: 1; padding: 0; background: var(--superficie); }
+.galeria-rejilla img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.galeria-mas { position: absolute; inset: 0; display: grid; place-items: center; background: rgb(23 33 29 / .55); color: #fff; font: 700 22px var(--titulos); }
+.visor { position: absolute; inset: 0; z-index: 40; background: #0d1210; display: flex; align-items: center; justify-content: center; }
+.visor img { max-width: 100%; max-height: calc(100% - 140px); object-fit: contain; }
+.visor-cerrar { position: absolute; top: calc(env(safe-area-inset-top) + 12px); right: 12px; width: 46px; height: 46px; border-radius: 50%; background: rgb(255 255 255 / .14); color: #fff; display: grid; place-items: center; }
+.visor-pie { position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 20px); display: flex; align-items: center; justify-content: center; gap: 18px; color: #fff; font-size: 14px; }
+.visor-pie button { width: 48px; height: 48px; border-radius: 50%; background: rgb(255 255 255 / .14); color: #fff; display: grid; place-items: center; }
+.tarjeta-recuerdo { flex: none; width: 160px; scroll-snap-align: start; display: flex; flex-direction: column; gap: 6px; }
+.tarjeta-recuerdo img { width: 160px; height: 120px; object-fit: cover; border-radius: 14px; background: var(--superficie); }
+.tarjeta-recuerdo b { display: block; font-size: 14px; line-height: 1.25; }
+.tarjeta-recuerdo small { color: var(--suave); font-size: 12.5px; }

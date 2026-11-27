@@ -8,6 +8,7 @@ import { enlaceGestion, enviarCorreo } from '../correo.ts'
 import {
   aGestion, cambiarEstado, comprobarImagen, comprobarMunicipio, crearEvento, eventoParaDireccion, guardarDatos, listarEventos, type FilaEvento,
 } from '../eventos.ts'
+import { fotosDe, fotosPendientes, leerFoto, revisarFoto } from '../fotos.ts'
 import { listaInscripciones } from '../inscripciones.ts'
 import { anotar } from '../registro.ts'
 import { exigir } from '../seguridad/sesiones.ts'
@@ -78,6 +79,7 @@ direccion.get('/pendientes', (c) => c.json({
   entidades: varios<FilaEntidad>(`${SELECT_ENTIDAD} WHERE e.estado = 'pendiente' ORDER BY e.creado`).map(aEntidad),
   eventos: listarEventos("ev.estado = 'pendiente'").map(aGestion),
   cambios: listarEventos("ev.estado = 'publicado' AND ev.cambios IS NOT NULL").map(aGestion),
+  fotos: fotosPendientes(),
 }))
 
 direccion.get('/resumen', (c) => {
@@ -85,7 +87,8 @@ direccion.get('/resumen', (c) => {
   return c.json({
     pendientes: n("SELECT COUNT(*) AS n FROM eventos WHERE estado = 'pendiente'")
       + n("SELECT COUNT(*) AS n FROM eventos WHERE estado = 'publicado' AND cambios IS NOT NULL")
-      + n("SELECT COUNT(*) AS n FROM entidades WHERE estado = 'pendiente'"),
+      + n("SELECT COUNT(*) AS n FROM entidades WHERE estado = 'pendiente'")
+      + n("SELECT COUNT(DISTINCT evento_id) AS n FROM fotos_evento WHERE estado = 'pendiente'"),
   })
 })
 
@@ -296,4 +299,43 @@ direccion.get('/equipo', (c) => c.json(varios(
 direccion.get('/eventos/:id/inscripciones', (c) => {
   const f = eventoParaDireccion(id(c))
   return c.json({ ...listaInscripciones(f.id), plazas: f.plazas })
+})
+
+// ——— Fotos de cómo fue ———
+
+direccion.get('/eventos/:id/fotos', (c) => c.json(fotosDe(eventoParaDireccion(id(c)).id)))
+
+/** Aprueba o rechaza varias fotos de golpe; avisa a la entidad una sola vez. */
+direccion.post('/fotos/revisar', async (c) => {
+  const { aprobar, rechazar } = await leer(c, z.object({
+    aprobar: z.array(z.number().int().positive()).max(100),
+    rechazar: z.array(z.number().int().positive()).max(100),
+  }).strict())
+  const u = c.get('usuario')
+  const porEntidad = new Map<number, { titulo: string; eventoId: number; si: number; no: number }>()
+  for (const [lista, estado] of [[aprobar, 'publicada'], [rechazar, 'rechazada']] as const) {
+    for (const fotoId of lista) {
+      const f = leerFoto(fotoId)
+      revisarFoto(f.id, estado, u.id)
+      const r = porEntidad.get(f.entidad_id) ?? { titulo: f.titulo, eventoId: f.evento_id, si: 0, no: 0 }
+      if (estado === 'publicada') r.si++
+      else r.no++
+      porEntidad.set(f.entidad_id, r)
+    }
+  }
+  anotar(c, u.id, 'fotos_revisadas', '', `${aprobar.length} aprobadas, ${rechazar.length} rechazadas`)
+  let avisado = ''
+  for (const [entidadId, r] of porEntidad) {
+    const partes = [r.si && `${r.si === 1 ? 'Se ha publicado 1 foto' : `Se han publicado ${r.si} fotos`}`, r.no && `${r.no === 1 ? '1 no' : `${r.no} no`} (no cumplían las normas o no se veían bien)`]
+    avisado = await escribirAEntidad(entidadId, 'Fotos revisadas · Valverde Cuenta', `Hemos revisado las fotos de «${r.titulo}». ${partes.filter(Boolean).join(' y ')}.`, r.no && !r.si ? 'mal' : 'bien', r.eventoId)
+  }
+  return c.json({ ok: true, avisado })
+})
+
+/** Quitar una foto ya publicada. */
+direccion.post('/fotos/:id/retirar', (c) => {
+  const f = leerFoto(id(c))
+  revisarFoto(f.id, 'rechazada', c.get('usuario').id)
+  anotar(c, c.get('usuario').id, 'foto_retirada', `evento:${f.evento_id}`)
+  return c.json({ ok: true })
 })

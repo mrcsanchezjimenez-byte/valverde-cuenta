@@ -5,6 +5,7 @@ import { api } from '../api.ts'
 import { avisar } from '../componentes/Avisos.tsx'
 import { FormEvento, eventoVacio } from '../componentes/FormEvento.tsx'
 import { Icono } from '../componentes/Iconos.tsx'
+import { FotosEntidad } from '../componentes/Fotos.tsx'
 import { Inscritos } from '../componentes/Inscritos.tsx'
 import { FilaEvento, Vacio } from '../componentes/Listas.tsx'
 import { Cargando, Estado, Fallo, fechaIso, useAccion, useCarga, useMunicipios } from '../componentes/piezas.tsx'
@@ -153,6 +154,7 @@ export function EventoEntidad() {
       {e?.inscripcion && ['publicado', 'cancelado'].includes(e.estado) && (
         <Inscritos ruta={`/entidad/eventos/${e.id}/inscripciones`} titulo={e.titulo} />
       )}
+      {e && e.estado === 'publicado' && <FotosEntidad eventoId={e.id} />}
 
       {editable && (
         <FormEvento

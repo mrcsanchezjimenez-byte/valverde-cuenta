@@ -116,3 +116,8 @@ export const nuevaInscripcion = z.object({
   /** Campo trampa: las personas no lo ven; si viene relleno, es un robot. */
   web: z.string().max(200).optional(),
 }).strict().refine((i) => i.email || i.telefono, { message: 'Deja un teléfono o un correo, por si hay cambios.', path: ['telefono'] })
+
+export const nuevaFoto = z.object({
+  imagen: z.string().regex(/^[a-z0-9]{24}$/, 'La imagen no es válida.'),
+  pie: linea(0, 140, 'Pie de foto'),
+}).strict()

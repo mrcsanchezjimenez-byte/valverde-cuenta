@@ -36,6 +36,8 @@ imagenes.get('/:clave', (c) => {
   const img = uno<{ mime: string; entidad_id: number | null }>('SELECT mime, entidad_id FROM imagenes WHERE clave = ?', clave)
   if (!img) throw fallo(404, 'No existe.')
   const publica = uno("SELECT 1 FROM eventos WHERE imagen = ? AND estado IN ('publicado','cancelado')", clave)
+    ?? uno(`SELECT 1 FROM fotos_evento f JOIN eventos e ON e.id = f.evento_id
+             WHERE f.imagen = ? AND f.estado = 'publicada' AND e.estado IN ('publicado','cancelado')`, clave)
   if (publica) return servirArchivo(c, { clave, mime: img.mime }, true)
   const s = leerSesion(c)
   const puede = s?.segundoFactor && (s.usuario.rol === 'direccion' || s.usuario.entidadId === img.entidad_id)
