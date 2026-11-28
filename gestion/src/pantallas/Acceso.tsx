@@ -59,6 +59,8 @@ export function Entrar() {
       <div className="g-separador" />
       <p className="g-suave">¿Sois una asociación, hermandad, AMPA, club o institución de Valverde o alrededores y queréis publicar vuestros eventos gratis?</p>
       <Link to="/alta" className="g-boton g-boton-suave">Dar de alta mi entidad</Link>
+      <p className="g-suave">¿Tienes un comercio o negocio en la zona? Tu ficha en la guía es gratis.</p>
+      <Link to="/alta-comercio" className="g-boton g-boton-suave">Dar de alta mi comercio</Link>
     </Marco>
   )
 }

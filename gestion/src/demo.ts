@@ -6,6 +6,11 @@
 import { LETRAS_GRATIS, motivoCifNoGratis, normalizarCif } from '../../compartido/cif.ts'
 import { escenaPorDefecto } from '../../compartido/categorias.ts'
 import { blobADataUrl, prepararFoto } from '../../navegador/medios.ts'
+import { documentoComercioValido } from '../../compartido/cif.ts'
+import type { DatosComercio, TipoPlan } from '../../compartido/tipos.ts'
+import {
+  aGestionDemo, aOfertaDemo, aPlanDemo, campanasDemo, capacidadesDemo, hoyDemo, renovacionesDemo, type ComercioDemo,
+} from '../../demo/comercios.ts'
 import type { DatosEvento, EstadoEntidad, EstadoEvento } from '../../compartido/tipos.ts'
 import {
   aFotoDemo, CUENTAS_DEMO, cancelarInscripcionDemo, guardarHistoriaDemo, type HistoriaDemo, conDistancia, guardarAlmacen, leerAlmacen, listaInscripcionesDemo, type AlmacenDemo, type EntidadDemo, type EventoDemo, type UsuarioDemo,
@@ -38,9 +43,11 @@ function yo(a: AlmacenDemo, { aMedias = false } = {}) {
 
 function usuarioPublico(a: AlmacenDemo, u: UsuarioDemo) {
   const e = a.entidades.find((x) => x.id === u.entidadId)
+  const c = a.comercios.find((x) => x.id === u.comercioId)
   return {
     id: u.id, email: u.email, nombre: u.nombre, rol: u.rol, totpActivo: u.totpActivo,
     entidadId: u.entidadId, entidadNombre: e?.nombre ?? null, entidadEstado: e?.estado ?? null,
+    comercioId: c?.id ?? null, comercioNombre: c?.nombre ?? null, comercioEstado: c?.estado ?? null,
   }
 }
 
@@ -110,7 +117,7 @@ ruta('GET', '/cuenta/yo', (a) => {
 ruta('POST', '/cuenta/entrar', (a, _, c) => {
   const u = a.usuarios.find((x) => x.email === String(c.email ?? '').trim().toLowerCase())
   if (!u || u.clave !== c.clave) throw fallo(401, 'Correo o contraseña incorrectos.')
-  const completa = u.rol === 'entidad' && !u.totpActivo
+  const completa = u.rol !== 'direccion' && !u.totpActivo
   a.sesion = { usuarioId: u.id, segundoFactor: completa }
   apuntar(a, u.id, 'entrar')
   return { falta: falta(u, completa) }
@@ -348,6 +355,10 @@ const pendientes = (a: AlmacenDemo) => ({
   eventos: a.eventos.filter((e) => e.estado === 'pendiente').map((e) => aGestion(a, e)),
   cambios: a.eventos.filter((e) => e.estado === 'publicado' && e.cambios).map((e) => aGestion(a, e)),
   historias: a.historias.filter((h) => h.estado === 'pendiente').map((h) => aHistoriaGestionDemo(a, h)),
+  comercios: a.comercios.filter((c) => c.estado === 'pendiente').map((c) => aGestionDemo(a, c)),
+  cambiosComercio: a.comercios.filter((c) => c.estado === 'verificado' && c.cambios).map((c) => aGestionDemo(a, c)),
+  ofertas: a.ofertas.filter((o) => o.estado === 'pendiente').map((o) => aOfertaDemo(a, o)),
+  renovaciones: renovacionesDemo(a),
   fotos: [...new Set(a.fotos.filter((f) => f.estado === 'pendiente').map((f) => f.eventoId))].map((eventoId) => {
     const ev = a.eventos.find((e) => e.id === eventoId)!
     return {
@@ -365,7 +376,10 @@ ruta('GET', '/direccion/pendientes', (a) => {
 ruta('GET', '/direccion/resumen', (a) => {
   direccion(a)
   const p = pendientes(a)
-  return { pendientes: p.entidades.length + p.eventos.length + p.cambios.length + p.fotos.length + p.historias.length }
+  return {
+    pendientes: p.entidades.length + p.eventos.length + p.cambios.length + p.fotos.length + p.historias.length
+      + p.comercios.length + p.cambiosComercio.length + p.ofertas.length + p.renovaciones.length,
+  }
 })
 
 ruta('GET', '/direccion/eventos', (a, _, __, q) => {
@@ -686,6 +700,276 @@ ruta('GET', '/direccion/equipo', (a) => {
   direccion(a)
   return a.usuarios.filter((u) => u.rol === 'direccion').map((u) => ({ id: u.id, nombre: u.nombre, email: u.email, dobleFactor: u.totpActivo ? 1 : 0, ultimoAcceso: ahora() }))
 })
+
+// ——— Comercios (fase 3) ———
+
+const comercioPorId = (a: AlmacenDemo, id: number) => {
+  const c = a.comercios.find((x) => x.id === id)
+  if (!c) throw fallo(404, 'Ese comercio no existe.')
+  return c
+}
+const slugDe = (a: AlmacenDemo, nombre: string) => {
+  const base = nombre.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'comercio'
+  let s = base
+  for (let i = 2; a.comercios.some((c) => c.slug === s); i++) s = `${base}-${i}`
+  return s
+}
+function fichaDe(c: Cuerpo): DatosComercio {
+  const nombre = String(c.nombre ?? '').trim()
+  if (nombre.length < 2) throw fallo(400, 'Nombre: escribe al menos 2 caracteres.')
+  if (String(c.direccion ?? '').trim().length < 3) throw fallo(400, 'Dirección: escribe al menos 3 caracteres.')
+  return {
+    nombre, categoria: c.categoria as DatosComercio['categoria'], descripcion: String(c.descripcion ?? ''), direccion: String(c.direccion).trim(),
+    municipioId: Number(c.municipioId), lat: Number(c.lat), lng: Number(c.lng), telefono: String(c.telefono ?? ''), whatsapp: String(c.whatsapp ?? ''),
+    emailPublico: String(c.emailPublico ?? ''), web: String(c.web ?? ''), instagram: String(c.instagram ?? ''), facebook: String(c.facebook ?? ''),
+    horario: String(c.horario ?? ''), logo: (c.logo as string | null) ?? null, fotos: ((c.fotos as string[]) ?? []).slice(0, 6),
+  }
+}
+function avisarComercioDemo(a: AlmacenDemo, comercioId: number, tipo: 'bien' | 'mal' | 'info', titulo: string, texto: string) {
+  a.avisosComercio.unshift({ id: a.siguienteId++, comercioId, tipo, titulo, texto, eventoId: null, leido: false, creado: ahora() })
+  return a.comercios.find((c) => c.id === comercioId)?.nombre ?? ''
+}
+
+ruta('POST', '/cuenta/alta-comercio', (a, _, c) => {
+  const nif = normalizarCif(String(c.nif ?? ''))
+  if (!documentoComercioValido(nif)) throw fallo(400, 'El CIF, DNI o NIE no es válido.')
+  const email = String(c.email ?? '').trim().toLowerCase()
+  if (a.usuarios.some((u) => u.email === email)) throw fallo(409, 'Ya hay una cuenta con ese correo.')
+  if (String(c.clave ?? '').length < 12) throw fallo(400, 'La contraseña debe tener al menos 12 caracteres.')
+  const m = a.municipios.find((x) => x.id === Number(c.municipioId))
+  if (!m) throw fallo(400, 'Elige un municipio de la lista.')
+  const id = a.siguienteId++
+  a.comercios.push({
+    ...fichaDe({ ...c, lat: m.lat, lng: m.lng, fotos: [], logo: null }), id, slug: slugDe(a, String(c.nombre)), nif,
+    personaContacto: String(c.personaContacto ?? ''), telefonoContacto: String(c.telefono ?? ''), estado: 'pendiente', motivo: null, nota: '', cambios: null, creado: ahora(), visitas: 0,
+  })
+  a.usuarios.push({ id: a.siguienteId++, email, clave: String(c.clave), nombre: String(c.personaContacto), rol: 'comercio', entidadId: null, comercioId: id, totpActivo: false })
+  apuntar(a, null, 'alta_comercio', `comercio:${nif}`, String(c.nombre))
+  return { ok: true }
+})
+
+// El propio comercio
+function miComercio(a: AlmacenDemo) {
+  const u = yo(a)
+  if (u.rol !== 'comercio') throw fallo(403, 'No tienes permiso para esto.')
+  return { u, c: comercioPorId(a, u.comercioId!) }
+}
+
+ruta('GET', '/comercio/yo', (a) => {
+  const { c } = miComercio(a)
+  return { ...aGestionDemo(a, c), planes: a.planes.filter((p) => p.comercioId === c.id).map((p) => aPlanDemo(a, p)) }
+})
+
+ruta('PUT', '/comercio/ficha', (a, _, cuerpo) => {
+  const { u, c } = miComercio(a)
+  const d = fichaDe(cuerpo)
+  if (!capacidadesDemo(a, c.id).escaparate) Object.assign(d, { descripcion: '', whatsapp: '', emailPublico: '', web: '', instagram: '', facebook: '', logo: null, fotos: [] })
+  if (c.estado === 'pendiente') Object.assign(c, d)
+  else c.cambios = d
+  apuntar(a, u.id, 'ficha_comercio_enviada', `comercio:${c.id}`, d.nombre)
+  return { ok: true, revision: c.estado !== 'pendiente' }
+})
+
+ruta('DELETE', '/comercio/ficha/cambios', (a) => {
+  miComercio(a).c.cambios = null
+  return { ok: true }
+})
+
+ruta('GET', '/comercio/ofertas', (a) => {
+  const { c } = miComercio(a)
+  return a.ofertas.filter((o) => o.comercioId === c.id).map((o) => aOfertaDemo(a, o))
+})
+
+const guardarOfertaDemo = (a: AlmacenDemo, id: number | null, cuerpo: Cuerpo) => {
+  const { u, c } = miComercio(a)
+  if (c.estado !== 'verificado') throw fallo(403, 'Podrás publicar ofertas cuando verifiquemos tu comercio.')
+  if (!capacidadesDemo(a, c.id).ofertas) throw fallo(403, 'Para publicar ofertas hace falta un plan (Escaparate, Destacado, Campaña o Promoción).')
+  const titulo = String(cuerpo.titulo ?? '').trim()
+  if (titulo.length < 3) throw fallo(400, 'Título: escribe al menos 3 caracteres.')
+  const datos = { titulo, texto: String(cuerpo.texto ?? ''), imagen: (cuerpo.imagen as string | null) ?? null, desde: String(cuerpo.desde), hasta: String(cuerpo.hasta), campanaId: (cuerpo.campanaId as number | null) ?? null }
+  if (datos.hasta < datos.desde) throw fallo(400, 'La oferta tiene que acabar después de empezar.')
+  if (datos.hasta < hoyDemo()) throw fallo(400, 'Esa oferta ya habría terminado.')
+  if (id) {
+    const o = a.ofertas.find((x) => x.id === id && x.comercioId === c.id)
+    if (!o) throw fallo(404, 'Esa oferta no existe.')
+    Object.assign(o, datos, { estado: 'pendiente', motivo: null })
+  } else {
+    id = a.siguienteId++
+    a.ofertas.unshift({ id, comercioId: c.id, ...datos, estado: 'pendiente', motivo: null, creado: ahora() })
+  }
+  apuntar(a, u.id, 'oferta_enviada', `oferta:${id}`, titulo)
+  return { id }
+}
+ruta('POST', '/comercio/ofertas', (a, _, c) => guardarOfertaDemo(a, null, c))
+ruta('PUT', '/comercio/ofertas/(\\d+)', (a, [id], c) => guardarOfertaDemo(a, Number(id), c))
+ruta('DELETE', '/comercio/ofertas/(\\d+)', (a, [id]) => {
+  const { c } = miComercio(a)
+  const o = a.ofertas.find((x) => x.id === Number(id) && x.comercioId === c.id)
+  if (!o) throw fallo(404, 'Esa oferta no existe.')
+  if (o.estado === 'publicada') o.estado = 'retirada'
+  else a.ofertas = a.ofertas.filter((x) => x.id !== o.id)
+  return { ok: true }
+})
+ruta('GET', '/comercio/avisos', (a) => {
+  const { c } = miComercio(a)
+  return a.avisosComercio.filter((x) => x.comercioId === c.id).map(({ comercioId: _, ...x }) => x)
+})
+ruta('POST', '/comercio/avisos/leidos', (a) => {
+  const { c } = miComercio(a)
+  a.avisosComercio.forEach((x) => {
+    if (x.comercioId === c.id) x.leido = true
+  })
+  return { ok: true }
+})
+ruta('GET', '/comercio/campanas', (a) => {
+  const { c } = miComercio(a)
+  const mias = capacidadesDemo(a, c.id).campanas
+  return campanasDemo(a).filter((x) => mias.includes(x.id))
+})
+
+// Dirección
+ruta('GET', '/direccion/comercios', (a) => {
+  direccion(a)
+  return [...a.comercios].sort((x, y) => x.nombre.localeCompare(y.nombre)).map((c) => aGestionDemo(a, c))
+})
+ruta('GET', '/direccion/comercios/(\\d+)', (a, [id]) => {
+  direccion(a)
+  const c = comercioPorId(a, Number(id))
+  return {
+    ...aGestionDemo(a, c), planes: a.planes.filter((p) => p.comercioId === c.id).sort((x, y) => y.desde.localeCompare(x.desde)).map((p) => aPlanDemo(a, p)),
+    ofertas: a.ofertas.filter((o) => o.comercioId === c.id).map((o) => aOfertaDemo(a, o)),
+  }
+})
+ruta('POST', '/direccion/comercios', (a, _, c) => {
+  const u = direccion(a)
+  const ficha = fichaDe(c.ficha as Cuerpo)
+  const id = a.siguienteId++
+  const nuevo: ComercioDemo = {
+    ...ficha, id, slug: slugDe(a, ficha.nombre), nif: String(c.nif ?? '') || null, personaContacto: String(c.personaContacto ?? ''),
+    telefonoContacto: String(c.telefonoContacto ?? ''), estado: 'verificado', motivo: null, nota: '', cambios: null, creado: ahora(), visitas: 0,
+  }
+  a.comercios.push(nuevo)
+  const email = String(c.emailCuenta ?? '').trim().toLowerCase()
+  if (email) a.usuarios.push({ id: a.siguienteId++, email, clave: 'demo-valverde', nombre: nuevo.personaContacto || nuevo.nombre, rol: 'comercio', entidadId: null, comercioId: id, totpActivo: false })
+  apuntar(a, u.id, 'comercio_creado', `comercio:${id}`, ficha.nombre)
+  return { id }
+})
+ruta('PUT', '/direccion/comercios/(\\d+)', (a, [id], c) => {
+  const u = direccion(a)
+  const co = comercioPorId(a, Number(id))
+  Object.assign(co, fichaDe(c.ficha as Cuerpo), { nota: String(c.nota ?? ''), cambios: null })
+  apuntar(a, u.id, 'comercio_editado', `comercio:${co.id}`, co.nombre)
+  return { ok: true }
+})
+ruta('POST', '/direccion/comercios/(\\d+)/cuenta', (a, [id], c) => {
+  direccion(a)
+  const co = comercioPorId(a, Number(id))
+  a.usuarios.push({ id: a.siguienteId++, email: String(c.email), clave: 'demo-valverde', nombre: String(c.nombre), rol: 'comercio', entidadId: null, comercioId: co.id, totpActivo: false })
+  return { ok: true }
+})
+const estadoComercio = (desde: ComercioDemo['estado'][], hasta: ComercioDemo['estado'], accion: string, conMotivo: boolean, aviso?: [string, string, 'bien' | 'mal']): Manejador => (a, [id], c) => {
+  const u = direccion(a)
+  const co = comercioPorId(a, Number(id))
+  if (!desde.includes(co.estado)) throw fallo(409, 'El comercio no está en un estado que permita esto.')
+  if (conMotivo && String(c.motivo ?? '').trim().length < 5) throw fallo(400, 'Motivo: escribe al menos 5 caracteres.')
+  co.estado = hasta
+  co.motivo = conMotivo ? String(c.motivo).trim() : null
+  apuntar(a, u.id, accion, `comercio:${co.id}`, co.motivo ?? co.nombre)
+  return { ok: true, avisado: aviso ? avisarComercioDemo(a, co.id, aviso[2], aviso[0], aviso[1].replace('{nombre}', co.nombre).replace('{motivo}', co.motivo ?? '')) : undefined }
+}
+ruta('POST', '/direccion/comercios/(\\d+)/verificar', estadoComercio(['pendiente', 'rechazado'], 'verificado', 'comercio_verificado', false, ['Comercio publicado en la guía', '«{nombre}» ya sale en la guía con su ficha básica.', 'bien']))
+ruta('POST', '/direccion/comercios/(\\d+)/rechazar', estadoComercio(['pendiente'], 'rechazado', 'comercio_rechazado', true, ['Alta no aceptada', 'No hemos podido publicar «{nombre}»:\n\n{motivo}', 'mal']))
+ruta('POST', '/direccion/comercios/(\\d+)/suspender', estadoComercio(['verificado'], 'suspendido', 'comercio_suspendido', true, ['Ficha suspendida', 'Hemos quitado de la guía «{nombre}»:\n\n{motivo}', 'mal']))
+ruta('POST', '/direccion/comercios/(\\d+)/reactivar', estadoComercio(['suspendido'], 'verificado', 'comercio_reactivado', false))
+ruta('POST', '/direccion/comercios/(\\d+)/aprobar-cambios', (a, [id]) => {
+  direccion(a)
+  const co = comercioPorId(a, Number(id))
+  if (!co.cambios) throw fallo(409, 'No hay cambios pendientes.')
+  Object.assign(co, co.cambios, { cambios: null })
+  return { ok: true, avisado: avisarComercioDemo(a, co.id, 'bien', 'Ficha actualizada', 'Los cambios en tu ficha ya se ven en la guía.') }
+})
+ruta('POST', '/direccion/comercios/(\\d+)/rechazar-cambios', (a, [id], c) => {
+  direccion(a)
+  const co = comercioPorId(a, Number(id))
+  co.cambios = null
+  return { ok: true, avisado: avisarComercioDemo(a, co.id, 'mal', 'Cambios no aplicados', `No hemos aplicado los cambios en tu ficha:\n\n${String(c.motivo ?? '')}`) }
+})
+
+const planDe = (c: Cuerpo) => {
+  if (String(c.hasta) < String(c.desde)) throw fallo(400, 'El plan tiene que acabar después de empezar.')
+  if (c.tipo === 'campana' && !c.campanaId) throw fallo(400, 'Elige la campaña.')
+  return {
+    tipo: c.tipo as TipoPlan, campanaId: c.tipo === 'campana' ? Number(c.campanaId) : null, desde: String(c.desde), hasta: String(c.hasta),
+    importe: Number(c.importe ?? 0), estadoPago: c.estadoPago as 'pendiente' | 'pagado' | 'anulado', metodo: String(c.metodo ?? ''),
+    factura: String(c.factura ?? ''), nota: String(c.nota ?? ''),
+  }
+}
+ruta('POST', '/direccion/comercios/(\\d+)/planes', (a, [id], c) => {
+  const u = direccion(a)
+  const co = comercioPorId(a, Number(id))
+  const p = planDe(c)
+  const nuevo = a.siguienteId++
+  a.planes.push({ id: nuevo, comercioId: co.id, ...p, pagadoEl: p.estadoPago === 'pagado' ? hoyDemo() : null })
+  apuntar(a, u.id, 'plan_creado', `comercio:${co.id}`, `${p.tipo} ${p.desde}–${p.hasta} ${p.importe} €`)
+  return { id: nuevo }
+})
+ruta('PUT', '/direccion/planes/(\\d+)', (a, [id], c) => {
+  direccion(a)
+  const actual = a.planes.find((x) => x.id === Number(id))
+  if (!actual) throw fallo(404, 'Ese plan no existe.')
+  const p = planDe(c)
+  Object.assign(actual, p, { pagadoEl: p.estadoPago === 'pagado' ? actual.pagadoEl ?? hoyDemo() : null })
+  return { ok: true }
+})
+ruta('GET', '/direccion/cobros', (a) => {
+  direccion(a)
+  const hoy = hoyDemo()
+  const suma = (f: (p: (typeof a.planes)[number]) => boolean) => a.planes.filter(f).reduce((t, p) => t + p.importe, 0)
+  return {
+    cobradoMes: suma((p) => p.estadoPago === 'pagado' && (p.pagadoEl ?? '').slice(0, 7) === hoy.slice(0, 7)),
+    cobradoAnio: suma((p) => p.estadoPago === 'pagado' && (p.pagadoEl ?? '').slice(0, 4) === hoy.slice(0, 4)),
+    pendiente: suma((p) => p.estadoPago === 'pendiente'),
+    planes: [...a.planes].sort((x, y) => y.desde.localeCompare(x.desde)).map((p) => aPlanDemo(a, p)),
+    renovaciones: renovacionesDemo(a),
+  }
+})
+ruta('GET', '/direccion/campanas', (a) => {
+  direccion(a)
+  return campanasDemo(a)
+})
+const campanaDe = (c: Cuerpo) => {
+  if (String(c.nombre ?? '').trim().length < 3) throw fallo(400, 'Nombre: escribe al menos 3 caracteres.')
+  if (String(c.hasta) < String(c.desde)) throw fallo(400, 'La campaña tiene que acabar después de empezar.')
+  return { nombre: String(c.nombre).trim(), descripcion: String(c.descripcion ?? ''), desde: String(c.desde), hasta: String(c.hasta), activa: Boolean(c.activa) }
+}
+ruta('POST', '/direccion/campanas', (a, _, c) => {
+  direccion(a)
+  const d = campanaDe(c)
+  const slug = `${slugDe(a, d.nombre)}-${a.siguienteId}`
+  a.campanas.unshift({ id: a.siguienteId++, slug, ...d })
+  return { slug }
+})
+ruta('PUT', '/direccion/campanas/(\\d+)', (a, [id], c) => {
+  direccion(a)
+  const ca = a.campanas.find((x) => x.id === Number(id))
+  if (!ca) throw fallo(404, 'Esa campaña no existe.')
+  Object.assign(ca, campanaDe(c))
+  return { ok: true }
+})
+const estadoOferta = (desde: string[], hasta: 'publicada' | 'rechazada' | 'retirada', conMotivo: boolean, titulo: string): Manejador => (a, [id], c) => {
+  const u = direccion(a)
+  const o = a.ofertas.find((x) => x.id === Number(id))
+  if (!o) throw fallo(404, 'Esa oferta no existe.')
+  if (!desde.includes(o.estado)) throw fallo(409, 'Esta oferta no está en un estado que permita esto.')
+  if (conMotivo && String(c.motivo ?? '').trim().length < 5) throw fallo(400, 'Motivo: escribe al menos 5 caracteres.')
+  o.estado = hasta
+  o.motivo = conMotivo ? String(c.motivo).trim() : null
+  apuntar(a, u.id, `oferta_${hasta}`, `oferta:${o.id}`, o.titulo)
+  return { ok: true, avisado: avisarComercioDemo(a, o.comercioId, hasta === 'publicada' ? 'bien' : 'mal', titulo, hasta === 'publicada' ? `«${o.titulo}» ya se ve en la app.` : `«${o.titulo}»: ${o.motivo}`) }
+}
+ruta('POST', '/direccion/ofertas/(\\d+)/aprobar', estadoOferta(['pendiente'], 'publicada', false, 'Oferta publicada'))
+ruta('POST', '/direccion/ofertas/(\\d+)/rechazar', estadoOferta(['pendiente'], 'rechazada', true, 'Oferta no publicada'))
+ruta('POST', '/direccion/ofertas/(\\d+)/retirar', estadoOferta(['publicada'], 'retirada', true, 'Oferta retirada'))
 
 /** Punto de entrada: mismo contrato que api() contra el servidor real. */
 export async function apiDemo(metodo: string, rutaPedida: string, cuerpo: unknown) {

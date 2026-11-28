@@ -1,13 +1,14 @@
 import { useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { CATEGORIAS, escenaPorDefecto } from '../../../compartido/categorias.ts'
-import type { DatosEvento, EstadoEntidad, EstadoEvento, EventoGestion, FotoEvento, HistoriaGestion, Municipio } from '../../../compartido/tipos.ts'
+import type { ComercioGestion, DatosEvento, EstadoEntidad, EstadoEvento, EventoGestion, FotoEvento, HistoriaGestion, Municipio, Oferta, Plan } from '../../../compartido/tipos.ts'
 import { Escena } from '../../../src/componentes/Escena.tsx'
 import { api } from '../api.ts'
 import { avisar } from '../componentes/Avisos.tsx'
 import { FormEvento, eventoVacio } from '../componentes/FormEvento.tsx'
 import { GaleriaDireccion, RevisarFotos } from '../componentes/Fotos.tsx'
 import { Inscritos } from '../componentes/Inscritos.tsx'
+import { FilaComercio, FilaOferta, FilaPlan } from './Comercios.tsx'
 import { FilaHistoria } from './Historias.tsx'
 import { Icono } from '../componentes/Iconos.tsx'
 import { Buscador, FilaEntidad, FilaEvento, Filtros, nombreMes, nombreTipo, Vacio } from '../componentes/Listas.tsx'
@@ -64,8 +65,15 @@ export function Pendientes() {
     cambios: EventoGestion[]
     fotos: { eventoId: number; titulo: string; entidadNombre: string; inicio: string; fotos: FotoEvento[] }[]
     historias: HistoriaGestion[]
+    comercios: ComercioGestion[]
+    cambiosComercio: ComercioGestion[]
+    ofertas: Oferta[]
+    renovaciones: Plan[]
   }>('/direccion/pendientes')
-  const total = datos ? datos.entidades.length + datos.eventos.length + datos.cambios.length + datos.fotos.length + datos.historias.length : 0
+  const total = datos
+    ? datos.entidades.length + datos.eventos.length + datos.cambios.length + datos.fotos.length + datos.historias.length
+      + datos.comercios.length + datos.cambiosComercio.length + datos.ofertas.length + datos.renovaciones.length
+    : 0
   return (
     <section className="g-pagina">
       <Cabecera ante="Dirección" titulo="Pendientes">
@@ -105,6 +113,27 @@ export function Pendientes() {
           <h2 className="g-bloque-titulo"><Icono n="imagen" /> Fotos por revisar <span className="g-cuenta-filtro">{datos.fotos.reduce((t, g) => t + g.fotos.length, 0)}</span></h2>
           <p className="g-suave">Pulsa ✓ o ✕ en cada foto. Lo que no marques se publica con «Publicar el resto». Pulsa una foto para verla en grande.</p>
           {datos.fotos.map((g) => <RevisarFotos key={g.eventoId} grupo={g} alTerminar={() => void recargar()} />)}
+        </section>
+      )}
+
+      {!!datos?.ofertas.length && (
+        <section className="g-bloque">
+          <h2 className="g-bloque-titulo"><Icono n="etiqueta" /> Ofertas de comercios <span className="g-cuenta-filtro">{datos.ofertas.length}</span></h2>
+          <div className="g-lista">{datos.ofertas.map((o) => <FilaOferta key={o.id} o={o} conComercio alCambiar={() => void recargar()} />)}</div>
+        </section>
+      )}
+
+      {!!(datos?.comercios.length || datos?.cambiosComercio.length) && (
+        <section className="g-bloque">
+          <h2 className="g-bloque-titulo"><Icono n="tienda" /> Comercios por revisar <span className="g-cuenta-filtro">{datos.comercios.length + datos.cambiosComercio.length}</span></h2>
+          <div className="g-lista">{[...datos.comercios, ...datos.cambiosComercio].map((c) => <FilaComercio key={c.id} c={c} />)}</div>
+        </section>
+      )}
+
+      {!!datos?.renovaciones.length && (
+        <section className="g-bloque">
+          <h2 className="g-bloque-titulo"><Icono n="reloj" /> Planes que caducan pronto <span className="g-cuenta-filtro">{datos.renovaciones.length}</span></h2>
+          <div className="g-lista">{datos.renovaciones.map((p) => <Link key={p.id} to={`/comercios/${p.comercioId}`} className="g-enlace-fila"><FilaPlan p={p} conComercio /></Link>)}</div>
         </section>
       )}
 

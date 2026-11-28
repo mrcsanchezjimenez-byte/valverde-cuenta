@@ -34,8 +34,11 @@ export function AccesoDemo({ alElegir }: { alElegir: (email: string, clave: stri
       <button type="button" className="g-boton g-boton-suave" onClick={() => alElegir(CUENTAS_DEMO.entidad.email, CUENTAS_DEMO.entidad.clave)}>
         Entrar como asociación (Peña El Boto)
       </button>
+      <button type="button" className="g-boton g-boton-suave" onClick={() => alElegir(CUENTAS_DEMO.comercio.email, CUENTAS_DEMO.comercio.clave)}>
+        Entrar como comercio (Botos La Horma)
+      </button>
       <p className="g-suave">
-        Contraseña de las dos: <code>{CUENTAS_DEMO.direccion.clave}</code>. Código del móvil para dirección: <code>{CUENTAS_DEMO.direccion.codigo}</code>.
+        Contraseña de todas: <code>{CUENTAS_DEMO.direccion.clave}</code>. Código del móvil para dirección: <code>{CUENTAS_DEMO.direccion.codigo}</code>.
       </p>
     </div>
   )

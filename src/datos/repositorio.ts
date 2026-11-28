@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useSyncExternalStore } from 'react'
 import { escribir, leer } from '../nativo'
 import { fecha, noHaTerminado } from './fechas'
-import type { Historia, Lugar, MiInscripcion } from '../../compartido/tipos.ts'
+import type { CampanaPublica, ComercioPublico, Historia, Lugar, MiInscripcion } from '../../compartido/tipos.ts'
 import type { Evento } from './tipos'
 
 /**
@@ -211,4 +211,44 @@ export async function enviarHistoria(datos: FormData) {
     const e = await r.json().catch(() => null) as { error?: string } | null
     throw new Error(e?.error ?? 'No se ha podido enviar. Inténtalo otra vez.')
   }
+}
+
+// ——— Guía de comercios ———
+
+/** Las imágenes de los comercios vienen con ruta del servidor. */
+function comercioConServidor(c: ComercioPublico): ComercioPublico {
+  const url = (u?: string) => (u?.startsWith('/') ? `${API}${u}` : u)
+  return {
+    ...c, logo: url(c.logo), fotos: c.fotos?.map((f) => url(f)!),
+    ofertas: c.ofertas.map((o) => ({ ...o, imagen: url(o.imagen ?? undefined) ?? null })),
+  }
+}
+
+export async function cargarComercios(): Promise<ComercioPublico[]> {
+  if (MODO_DEMO) return (await import('../../demo/almacen.ts')).comerciosPublicosDemo()
+  return (await pedirJson<ComercioPublico[]>('/comercios')).map(comercioConServidor)
+}
+
+export async function cargarComercio(slug: string): Promise<ComercioPublico> {
+  if (MODO_DEMO) return (await import('../../demo/almacen.ts')).comercioPublicoDemo(slug)
+  return comercioConServidor(await pedirJson<ComercioPublico>(`/comercios/${slug}`))
+}
+
+/** Comercios con plan Destacado; se guardan un rato en memoria para no pedirlos en cada pantalla. */
+let patrocinadosCache: { cuando: number; lista: ComercioPublico[] } | null = null
+export async function cargarPatrocinados(): Promise<ComercioPublico[]> {
+  if (patrocinadosCache && Date.now() - patrocinadosCache.cuando < REFRESCO_MS) return patrocinadosCache.lista
+  const lista = MODO_DEMO
+    ? (await import('../../demo/almacen.ts')).patrocinadosDemo()
+    : (await pedirJson<ComercioPublico[]>('/patrocinados')).map(comercioConServidor)
+  patrocinadosCache = { cuando: Date.now(), lista }
+  return lista
+}
+
+export async function cargarCampana(): Promise<CampanaPublica | null> {
+  if (MODO_DEMO) return (await import('../../demo/almacen.ts')).campanaDemo()
+  const c = await pedirJson<CampanaPublica | null>('/campana').catch(() => null)
+  if (!c) return null
+  const url = (u: string | null) => (u?.startsWith('/') ? `${API}${u}` : u)
+  return { ...c, comercios: c.comercios.map((x) => ({ ...x, logo: url(x.logo) })), ofertas: c.ofertas.map((o) => ({ ...o, imagen: url(o.imagen) })) }
 }

@@ -7,8 +7,10 @@ import { TarjetaGrande } from '../componentes/TarjetasEvento'
 import { CATEGORIAS } from '../../compartido/categorias.ts'
 import { diaSemanaCorto, esProximosDias, fecha, hora } from '../datos/fechas'
 import type { Historia } from '../../compartido/tipos.ts'
-import { cargarHistorias, MODO_DEMO, URL_GESTION, useAgenda } from '../datos/repositorio'
+import { cargarCampana, cargarHistorias, MODO_DEMO, URL_GESTION, useAgenda } from '../datos/repositorio'
 import { BotonContar, TarjetaHistoria } from './Historias'
+import { BannerCampana, TarjetaPatrocinada, usePatrocinado } from './Comercios'
+import type { CampanaPublica } from '../../compartido/tipos.ts'
 import { PARADAS, RUTA_MINUTOS } from '../datos/yincana'
 import { useCompletadas, useGuardados, useMisInscripciones, useSeguidos } from '../estado/almacen'
 
@@ -50,8 +52,11 @@ export function Inicio() {
     .filter((p) => p.motivo)
     .slice(0, 4)
   const [historias, setHistorias] = useState<Historia[]>([])
+  const [campana, setCampana] = useState<CampanaPublica | null>(null)
+  const patrocinado = usePatrocinado()
   useEffect(() => {
     cargarHistorias().then(setHistorias).catch(() => undefined)
+    cargarCampana().then(setCampana).catch(() => undefined)
   }, [])
   const ahora = new Date()
   const conFotos = todos.filter((e) => e.fotos?.length && fecha(e.fin) < ahora).reverse().slice(0, 6)
@@ -113,7 +118,11 @@ export function Inicio() {
         ))}
       </div>
 
+      {campana && <BannerCampana c={campana} />}
+
       <BannerYincana />
+
+      {patrocinado && <TarjetaPatrocinada c={patrocinado} />}
 
       {!!conFotos.length && (
         <>

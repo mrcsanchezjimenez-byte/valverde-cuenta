@@ -12,6 +12,8 @@ import { escenaPorDefecto } from '../compartido/categorias.ts'
 import { EVENTOS, HISTORIAS_EJEMPLO, LUGARES_EJEMPLO } from '../compartido/ejemplo.ts'
 import type { AvisoEntidad, Consentimiento, DatosEvento, EstadoEntidad, EstadoFoto, EstadoHistoria, EstadoInscripcion, Historia, Lugar, Evento, EventoGestion, Inscripcion, MiInscripcion, Municipio, Rol } from '../compartido/tipos.ts'
 import { CENTRO_VALVERDE, distanciaKm, firmaPublica } from '../compartido/tipos.ts'
+import type { ComercioPublico, CampanaPublica } from '../compartido/tipos.ts'
+import { aPublicoDemo, campanaActualDemo, capacidadesDemo, sembrarComercios, type DatosComerciosDemo } from './comercios.ts'
 
 export interface UsuarioDemo {
   id: number
@@ -20,6 +22,7 @@ export interface UsuarioDemo {
   nombre: string
   rol: Rol
   entidadId: number | null
+  comercioId?: number | null
   totpActivo: boolean
 }
 
@@ -80,7 +83,7 @@ function fotoDibujada(cielo: string, suelo: string, figuras: number, texto: stri
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg.replaceAll('%23', '#'))}`
 }
 
-export interface AlmacenDemo {
+export interface AlmacenDemo extends DatosComerciosDemo {
   version: number
   usuarios: UsuarioDemo[]
   entidades: EntidadDemo[]
@@ -102,10 +105,11 @@ export interface AlmacenDemo {
 export const CUENTAS_DEMO = {
   direccion: { email: 'pilar@demo.valverdecuenta', clave: 'demo-valverde', codigo: '123456' },
   entidad: { email: 'pena@demo.valverdecuenta', clave: 'demo-valverde' },
+  comercio: { email: 'comercio@demo.valverdecuenta', clave: 'demo-valverde' },
 }
 
 const CLAVE = 'vc.demo'
-const VERSION = 5
+const VERSION = 6
 const ahora = () => new Date().toISOString().replace(/\.\d+Z$/, 'Z')
 
 /** Fecha local (AAAA-MM-DDTHH:mm) dentro de `dias` días, a la hora indicada. */
@@ -141,6 +145,7 @@ function sembrar(): AlmacenDemo {
     { id: 2, email: CUENTAS_DEMO.entidad.email, clave: CUENTAS_DEMO.entidad.clave, nombre: 'Juan Pérez', rol: 'entidad', entidadId: 2, totpActivo: false },
     { id: 3, email: 'ampa@demo.valverdecuenta', clave: CUENTAS_DEMO.entidad.clave, nombre: 'Rosa Gil', rol: 'entidad', entidadId: 3, totpActivo: false },
     { id: 4, email: 'senderismo@demo.valverdecuenta', clave: CUENTAS_DEMO.entidad.clave, nombre: 'Luis Domínguez', rol: 'entidad', entidadId: 4, totpActivo: false },
+    { id: 5, email: CUENTAS_DEMO.comercio.email, clave: CUENTAS_DEMO.comercio.clave, nombre: 'Rafael (ficticio)', rol: 'comercio', entidadId: null, comercioId: 1001, totpActivo: false },
   ]
 
   // Los ejemplos se mueven para que siempre caigan en las próximas semanas.
@@ -245,7 +250,7 @@ function sembrar(): AlmacenDemo {
 
   return {
     version: VERSION, usuarios, entidades, eventos, municipios: MUNICIPIOS, sesion: null, siguienteId: 1000, imagenes, inscripciones, fotos,
-    lugares, historias,
+    lugares, historias, ...sembrarComercios(t),
     avisos: [{
       id: 1, entidadId: 2, tipo: 'bien', titulo: 'Entidad verificada', leido: false, eventoId: null, creado: t,
       texto: '«Peña Cultural El Boto» ya puede publicar en la agenda. Cada evento lo revisaremos antes de que salga.',
@@ -474,3 +479,26 @@ export async function guardarHistoriaDemo(datos: FormData, origen: 'web' | 'entr
   guardarAlmacen(a)
   return id
 }
+
+// ——— Guía de comercios (app) ———
+
+export function comerciosPublicosDemo(): ComercioPublico[] {
+  const a = leerAlmacen()
+  return a.comercios.filter((c) => c.estado === 'verificado').map((c) => aPublicoDemo(a, c)).sort((x, y) => x.nombre.localeCompare(y.nombre))
+}
+
+export function comercioPublicoDemo(slug: string): ComercioPublico {
+  const a = leerAlmacen()
+  const c = a.comercios.find((x) => x.slug === slug && x.estado === 'verificado')
+  if (!c) throw new ErrorDemo('Ese comercio no está en la guía.')
+  c.visitas++
+  guardarAlmacen(a)
+  return aPublicoDemo(a, c)
+}
+
+export function patrocinadosDemo(): ComercioPublico[] {
+  const a = leerAlmacen()
+  return a.comercios.filter((c) => c.estado === 'verificado' && capacidadesDemo(a, c.id).destacado).map((c) => aPublicoDemo(a, c))
+}
+
+export const campanaDemo = (): CampanaPublica | null => campanaActualDemo(leerAlmacen())

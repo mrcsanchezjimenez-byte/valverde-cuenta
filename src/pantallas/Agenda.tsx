@@ -1,11 +1,13 @@
-import { useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { AvisoEjemplo } from '../componentes/Avisos'
 import { MapaInteractivo } from '../componentes/MapaInteractivo'
 import { FilaEvento } from '../componentes/TarjetasEvento'
 import { CATEGORIAS } from '../../compartido/categorias.ts'
 import { claveDia, esEsteFinde, esHoy, fecha, fechaLarga, mesLargo } from '../datos/fechas'
-import { AVISO_AGENDA } from '../../compartido/tipos.ts'
+import { AVISO_AGENDA, PATROCINADO_CADA, type ComercioPublico } from '../../compartido/tipos.ts'
+import { TarjetaPatrocinada } from './Comercios'
+import { cargarPatrocinados } from '../datos/repositorio'
 import { URL_GESTION, useAgenda } from '../datos/repositorio'
 import type { Evento } from '../datos/tipos'
 import { useGuardados, useSeguidos } from '../estado/almacen'
@@ -47,6 +49,10 @@ function agruparPorDia(eventos: Evento[]) {
 }
 
 function Lista({ eventos, filtro, estado, reintentar }: { eventos: Evento[]; filtro: string; estado: string; reintentar: () => void }) {
+  const [patrocinados, setPatrocinados] = useState<ComercioPublico[]>([])
+  useEffect(() => {
+    cargarPatrocinados().then(setPatrocinados).catch(() => undefined)
+  }, [])
   if (estado === 'cargando' && !eventos.length) return <p className="suave">Cargando la agenda…</p>
   if (estado === 'sin-conexion') {
     return (
@@ -64,12 +70,24 @@ function Lista({ eventos, filtro, estado, reintentar }: { eventos: Evento[]; fil
       </div>
     )
   }
+  // Publicidad discreta: como mucho un patrocinado cada PATROCINADO_CADA eventos, rotando cada día.
+  let n = 0
+  const dia0 = Math.floor(Date.now() / 86400_000)
   return (
     <>
       {agruparPorDia(eventos).map(([dia, lista]) => (
         <section key={dia} className="grupo-dia">
           <h2>{fechaLarga(fecha(lista[0].inicio))}</h2>
-          {lista.map((e) => <FilaEvento key={e.id} evento={e} />)}
+          {lista.map((e) => {
+            n++
+            const toca = patrocinados.length > 0 && n % PATROCINADO_CADA === 0
+            return (
+              <Fragment key={e.id}>
+                <FilaEvento evento={e} />
+                {toca && <TarjetaPatrocinada c={patrocinados[(dia0 + n / PATROCINADO_CADA) % patrocinados.length]} />}
+              </Fragment>
+            )
+          })}
         </section>
       ))}
     </>

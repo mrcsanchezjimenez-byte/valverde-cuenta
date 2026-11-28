@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
-import type { EstadoEntidad, Rol } from '../../compartido/tipos.ts'
+import type { EstadoComercio, EstadoEntidad, Rol } from '../../compartido/tipos.ts'
 import { api } from './api.ts'
 
 export interface Usuario {
@@ -11,6 +11,9 @@ export interface Usuario {
   entidadId: number | null
   entidadNombre: string | null
   entidadEstado: EstadoEntidad | null
+  comercioId: number | null
+  comercioNombre: string | null
+  comercioEstado: EstadoComercio | null
 }
 
 export type Falta = 'codigo' | 'alta2fa' | null

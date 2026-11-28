@@ -86,15 +86,15 @@ export function MisEventos({ avisos }: { avisos: AvisoEntidad[] }) {
   )
 }
 
-export function AvisosEntidad() {
-  const { datos, error, recargar } = useCarga<AvisoEntidad[]>('/entidad/avisos')
+export function AvisosEntidad({ base = '/entidad' }: { base?: string }) {
+  const { datos, error, recargar } = useCarga<AvisoEntidad[]>(`${base}/avisos`)
   // Al abrir esta pantalla se dan por leídos (después de enseñarlos marcados como nuevos).
   useEffect(() => {
     if (datos?.some((a) => !a.leido)) {
-      const t = setTimeout(() => void api('POST', '/entidad/avisos/leidos').catch(() => undefined), 1500)
+      const t = setTimeout(() => void api('POST', `${base}/avisos/leidos`).catch(() => undefined), 1500)
       return () => clearTimeout(t)
     }
-  }, [datos])
+  }, [datos, base])
   return (
     <section className="g-pagina">
       <header className="g-cabecera"><div><p className="g-antetitulo">Dirección os escribe</p><h1>Avisos</h1></div></header>
@@ -102,7 +102,7 @@ export function AvisosEntidad() {
       <Fallo>{error}</Fallo>
       {datos && !datos.length && <Vacio icono="campana" titulo="Sin avisos todavía" />}
       <div className="g-lista">{datos?.map((a) => <TarjetaAviso key={a.id} a={a} />)}</div>
-      {datos?.some((a) => !a.leido) && <button className="g-enlace" onClick={() => void api('POST', '/entidad/avisos/leidos').then(recargar)}>Marcar todo como leído</button>}
+      {datos?.some((a) => !a.leido) && <button className="g-enlace" onClick={() => void api('POST', `${base}/avisos/leidos`).then(recargar)}>Marcar todo como leído</button>}
     </section>
   )
 }

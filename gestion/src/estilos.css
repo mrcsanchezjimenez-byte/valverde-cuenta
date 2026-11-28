@@ -66,7 +66,15 @@ input, select, textarea { font: inherit; color: inherit; }
 .g-nav a.active { color: var(--primario-oscuro); background: var(--primario-claro); }
 .g-nav-icono { position: relative; display: grid; place-items: center; }
 .g-nav-arriba { gap: 2px; flex: 1; min-width: 0; }
-.g-nav-arriba a { height: 42px; padding: 0 12px; gap: 12px; }
+.g-nav-arriba a { height: 42px; padding: 0 12px; gap: 10px; }
+/* Las secciones secundarias arriba solo llevan el icono (salvo la que está abierta): así caben todas. */
+.g-nav-arriba a.g-nav-sec:not(.active) { padding: 0 11px; }
+.g-nav-arriba a.g-nav-sec:not(.active) > span:last-child { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media (max-width: 1080px) {
+  .g-yo-nombre { display: none; }
+  .g-nav-arriba a:not(.active) { padding: 0 11px; }
+  .g-nav-arriba a:not(.active) > span:last-child { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
 .g-nav-arriba .g-globo { right: -9px; }
 .g-globo { position: absolute; top: -7px; right: -10px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--cuero); color: #fff; font-size: 11px; font-weight: 700; display: grid; place-items: center; border: 2px solid var(--tarjeta); }
 .g-yo { display: flex; align-items: center; gap: 10px; margin-left: auto; text-decoration: none; color: var(--tinta); font-weight: 600; font-size: 14px; border-radius: 999px; padding: 4px 4px 4px 12px; flex: none; }
@@ -444,3 +452,25 @@ details summary { cursor: pointer; color: var(--primario); font-weight: 650; }
   .g-principal { padding: 0; max-width: none; }
   .g-placa { width: 148mm; height: 210mm; border: 0; border-radius: 0; box-shadow: none; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* ——— Comercios ——— */
+.g-plan { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 3px 8px; border-radius: 7px; background: var(--superficie); color: var(--suave); white-space: nowrap; }
+.g-plan-escaparate { background: var(--primario-claro); color: var(--primario-oscuro); }
+.g-plan-destacado { background: var(--oro-claro); color: #6C4F12; }
+.g-plan-campana, .g-plan-promocion { background: var(--cuero-claro); color: var(--cuero-oscuro); }
+.g-plan-patrocinio { background: #E7E3F2; color: #4A3D7A; }
+.g-resumen-inscritos .g-plan { font-size: 15px; padding: 4px 10px; }
+.g-alerta-pago { color: var(--rojo) !important; }
+.g-fila-boton { width: 100%; text-align: left; font: inherit; cursor: pointer; }
+.g-fila-final-columna { flex-direction: column; align-items: flex-end; gap: 6px; }
+.g-boton-peq { min-height: 36px; padding: 0 12px; font-size: 13.5px; }
+.g-vigencia-activo { background: var(--verde-claro); color: var(--verde); }
+.g-vigencia-futuro { background: var(--oro-claro); color: #6C4F12; }
+.g-vigencia-caducado { background: var(--superficie); color: var(--suave); }
+.g-bloqueada { background: var(--fondo); }
+.g-bloqueada fieldset[disabled] { opacity: .5; }
+.g-sin-borde { border: 0; padding: 0; margin: 0; background: none; min-width: 0; }
+.g-logo span { display: grid; place-items: center; height: 100%; color: var(--suave); font-weight: 600; }
+.g-oferta-imagen { width: 100%; max-width: 320px; border-radius: 12px; display: block; }
+.g-planes-lista { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 14.5px; }
+.g-fila-oferta { align-items: flex-start; }

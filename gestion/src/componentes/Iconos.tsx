@@ -25,6 +25,9 @@ const TRAZOS = {
   descargar: 'M12 4v11M7 10l5 5 5-5M5 20h14',
   mas2: 'M5 12h.01M12 12h.01M19 12h.01',
   parar: 'M7 7h10v10H7z',
+  tienda: 'M4 9l1.5-5h13L20 9M4 9v11h16V9M4 9c0 1.7 1.3 3 3 3s3-1.3 3-3c0 1.7 1.3 3 3 3s3-1.3 3-3c0 1.7 1.3 3 3 3M10 20v-5h4v5',
+  euro: 'M17 6.5A6 6 0 1 0 17 17.5M5 10h9M5 14h9',
+  etiqueta: 'M3 12V4h8l10 10-8 8zM7.5 8.5h.01',
 } as const
 
 export type NombreIcono = keyof typeof TRAZOS

@@ -4,6 +4,7 @@ import { Icono, type NombreIcono } from './componentes/Iconos'
 import { Agenda } from './pantallas/Agenda'
 import { FichaEvento } from './pantallas/FichaEvento'
 import { FinYincana } from './pantallas/FinYincana'
+import { Campana, Comercios, FichaComercio } from './pantallas/Comercios'
 import { Contar } from './pantallas/Contar'
 import { FichaHistoria, Historias, LugarHistorias } from './pantallas/Historias'
 import { Inicio } from './pantallas/Inicio'
@@ -16,7 +17,7 @@ const PESTANAS: { a: string; texto: string; icono: NombreIcono }[] = [
   { a: '/', texto: 'Inicio', icono: 'inicio' },
   { a: '/agenda', texto: 'Agenda', icono: 'agenda' },
   { a: '/yincana', texto: 'Yincana', icono: 'yincana' },
-  { a: '/mapa', texto: 'Mapa', icono: 'mapa' },
+  { a: '/comercios', texto: 'Comercios', icono: 'tienda' },
   { a: '/historias', texto: 'Historias', icono: 'historias' },
 ]
 
@@ -33,6 +34,9 @@ function Contenido() {
         <Route path="/historia/:slug" element={<FichaHistoria />} />
         <Route path="/lugar/:slug" element={<LugarHistorias />} />
         <Route path="/contar" element={<Contar />} />
+        <Route path="/comercios" element={<Comercios />} />
+        <Route path="/comercio/:slug" element={<FichaComercio />} />
+        <Route path="/campana" element={<Campana />} />
         <Route path="/yincana" element={<Yincana />} />
         <Route path="/yincana/fin" element={<FinYincana />} />
         <Route path="/yincana/:numero" element={<ParadaYincana />} />

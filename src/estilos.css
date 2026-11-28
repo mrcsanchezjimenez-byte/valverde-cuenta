@@ -389,3 +389,50 @@ img.miniatura { object-fit: cover; background: var(--superficie); }
 .pasaporte small { display: block; color: #5E4610; font-size: 13.5px; }
 .pasaporte-barra { height: 10px; border-radius: 5px; background: rgb(255 255 255 / .7); overflow: hidden; }
 .pasaporte-barra span { display: block; height: 100%; border-radius: 5px; background: var(--oro); transition: width .4s; }
+
+/* ——— Comercios ——— */
+.buscador-app { display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 14px; border-radius: 14px; background: var(--tarjeta); border: 1.5px solid var(--borde-fuerte); color: var(--suave); }
+.buscador-app:focus-within { border-color: var(--primario); box-shadow: 0 0 0 4px rgb(30 91 67 / .12); }
+.buscador-app input { flex: 1; min-width: 0; border: 0; outline: none; background: none; font: inherit; font-size: 16px; color: var(--tinta); }
+.lista-comercios { display: flex; flex-direction: column; gap: 8px; }
+.fila-comercio { display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: var(--radio); background: var(--tarjeta); border: 1px solid var(--borde); }
+.fila-comercio.destacado { border-color: #EBD9A8; background: linear-gradient(90deg, var(--oro-claro), var(--tarjeta) 60%); }
+.fila-comercio > img, .fila-comercio-emoji { flex: none; width: 52px; height: 52px; border-radius: 12px; object-fit: cover; }
+.fila-comercio-emoji { display: grid; place-items: center; font-size: 26px; background: var(--superficie); }
+.fila-comercio-emoji.grande { width: 72px; height: 72px; font-size: 36px; border-radius: 18px; }
+.fila-comercio > span:nth-child(2) { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.fila-comercio b { font-weight: 650; font-size: 15.5px; }
+.fila-comercio small { color: var(--suave); font-size: 13px; }
+.fila-comercio-oferta { color: var(--cuero-oscuro) !important; font-weight: 650; display: inline-flex; align-items: center; gap: 4px; }
+.sello-destacado { flex: none; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #6C4F12; }
+.patrocinado { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: var(--radio); background: var(--tarjeta); border: 1px dashed #D9C08A; }
+.patrocinado > img, .patrocinado-emoji { flex: none; width: 48px; height: 48px; border-radius: 12px; object-fit: cover; }
+.patrocinado-emoji { display: grid; place-items: center; font-size: 24px; background: var(--oro-claro); }
+.patrocinado > span:not(.patrocinado-emoji) { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.patrocinado b { font-weight: 650; }
+.patrocinado small { color: var(--suave); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.patrocinado-etiqueta, .oferta-etiqueta { font-size: 10.5px !important; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #8A6A1C !important; }
+.tarjeta-oferta { flex: none; width: 230px; scroll-snap-align: start; display: flex; gap: 10px; padding: 10px; border-radius: var(--radio); background: var(--oro-claro); }
+.tarjeta-oferta img, .tarjeta-oferta-icono { flex: none; width: 64px; height: 64px; border-radius: 12px; object-fit: cover; }
+.tarjeta-oferta-icono { display: grid; place-items: center; background: rgb(255 255 255 / .7); color: var(--cuero); }
+.tarjeta-oferta > span { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.tarjeta-oferta b { font-size: 14.5px; line-height: 1.25; }
+.tarjeta-oferta small { color: #5E4610; font-size: 12.5px; }
+.lista-ofertas { display: flex; flex-direction: column; gap: 8px; }
+.lista-ofertas .tarjeta-oferta { width: auto; }
+.banner-campana { position: relative; display: flex; flex-direction: column; gap: 2px; padding: 16px 44px 16px 16px; border-radius: 20px; background: var(--rojo); color: #fff; }
+.banner-campana small { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #F6DEDA; }
+.banner-campana b { font: 700 22px var(--titulos); }
+.banner-campana span { font-size: 13.5px; color: #F6DEDA; }
+.banner-campana svg { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); }
+.ficha-comercio-cabeza { display: flex; align-items: center; gap: 14px; }
+.ficha-comercio-cabeza > img { width: 72px; height: 72px; border-radius: 18px; object-fit: cover; flex: none; border: 1px solid var(--borde); }
+.ficha-comercio .fila-botones { flex-wrap: wrap; }
+.ficha-comercio .fila-botones .boton { min-width: 0; }
+.oferta-ficha { display: flex; flex-direction: column; gap: 4px; padding: 14px; border-radius: var(--radio); background: var(--oro-claro); }
+.oferta-ficha b { font: 700 18px/1.25 var(--titulos); }
+.oferta-ficha p { font-size: 14.5px; }
+.oferta-ficha img { width: 100%; border-radius: 12px; margin-top: 6px; }
+.horario { white-space: pre-line; }
+.redes { display: flex; gap: 8px; flex-wrap: wrap; }
+.redes .boton { flex: none; padding: 0 14px; }
