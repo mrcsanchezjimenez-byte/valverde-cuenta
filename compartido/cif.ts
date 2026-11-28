@@ -52,3 +52,18 @@ export function motivoCifNoGratis(entrada: string): string | null {
   }
   return null
 }
+
+const LETRAS_DNI = 'TRWAGMYFPDXBNJZSQVHLCKE'
+
+/** DNI (12345678Z) o NIE (X1234567L): los de los autónomos. */
+export function nifPersonaValido(entrada: string): boolean {
+  const n = normalizarCif(entrada)
+  const m = /^([XYZ]?)(\d{7,8})([A-Z])$/.exec(n)
+  if (!m) return false
+  const numero = Number(`${m[1] ? 'XYZ'.indexOf(m[1]) : ''}${m[2]}`)
+  if ((m[1] && m[2].length !== 7) || (!m[1] && m[2].length !== 8)) return false
+  return LETRAS_DNI[numero % 23] === m[3]
+}
+
+/** Documento de un comercio: CIF de sociedad o DNI/NIE de autónomo. */
+export const documentoComercioValido = (entrada: string) => cifValido(entrada) || nifPersonaValido(entrada)

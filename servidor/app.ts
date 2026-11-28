@@ -12,6 +12,7 @@ import type { Entorno } from './contexto.ts'
 import { cuenta } from './rutas/cuenta.ts'
 import { direccion } from './rutas/direccion.ts'
 import { entidad } from './rutas/entidad.ts'
+import { altaComercio, comercio, comerciosDireccion, comerciosPublico } from './rutas/comercios.ts'
 import { historiasDireccion, historiasPublico } from './rutas/historias.ts'
 import { imagenes } from './rutas/imagenes.ts'
 import { publico } from './rutas/publico.ts'
@@ -89,10 +90,14 @@ export function crearApp() {
 
   app.route('/api/publico', publico)
   app.route('/api/publico', historiasPublico)
+  app.route('/api/publico', comerciosPublico)
+  app.route('/api/cuenta', altaComercio)
+  app.route('/api/comercio', comercio)
   app.route('/api/cuenta', cuenta)
   app.route('/api/entidad', entidad)
   app.route('/api/direccion', direccion)
   app.route('/api/direccion', historiasDireccion)
+  app.route('/api/direccion', comerciosDireccion)
   app.route('/api/imagenes', imagenes)
 
   /** Municipios con los inactivos incluidos: para dirección. Los demás usan /api/publico/municipios. */

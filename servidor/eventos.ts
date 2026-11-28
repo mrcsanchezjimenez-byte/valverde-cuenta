@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto'
 import { escenaPorDefecto } from '../compartido/categorias.ts'
-import type { Categoria, DatosEvento, EstadoEvento, Evento, EventoGestion, TipoEscena } from '../compartido/tipos.ts'
+import type { Categoria, DatosEvento, EstadoEvento, Evento, EventoGestion, Rol, TipoEscena } from '../compartido/tipos.ts'
 import { urlImagen } from '../compartido/tipos.ts'
 import { ahoraIso, ahoraLocal, ejecutar, uno, varios } from './bd.ts'
 import { fallo } from './contexto.ts'
@@ -132,10 +132,13 @@ export function eventosPublicos() {
  * Una imagen solo la puede usar quien la subió: su entidad, o dirección (que puede usar cualquiera).
  * Así nadie puede colgar en su evento una imagen ajena adivinando su clave.
  */
-export function comprobarImagen(clave: string | null, quien: { rol: 'direccion' | 'entidad'; entidadId: number | null }) {
+export function comprobarImagen(clave: string | null, quien: { rol: Rol; entidadId: number | null; comercioId?: number | null }) {
   if (!clave) return
-  const img = uno<{ entidad_id: number | null }>('SELECT entidad_id FROM imagenes WHERE clave = ?', clave)
-  if (!img || (quien.rol !== 'direccion' && img.entidad_id !== quien.entidadId)) throw fallo(400, 'La imagen no es válida. Vuelve a subirla.')
+  const img = uno<{ entidad_id: number | null; comercio_id: number | null }>('SELECT entidad_id, comercio_id FROM imagenes WHERE clave = ?', clave)
+  const suya = quien.rol === 'direccion'
+    || (quien.rol === 'entidad' && img?.entidad_id === quien.entidadId)
+    || (quien.rol === 'comercio' && img?.comercio_id === quien.comercioId)
+  if (!img || !suya) throw fallo(400, 'La imagen no es válida. Vuelve a subirla.')
 }
 
 export function comprobarMunicipio(id: number) {

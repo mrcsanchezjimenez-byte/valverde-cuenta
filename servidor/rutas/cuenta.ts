@@ -87,7 +87,8 @@ cuenta.post('/entrar', async (c) => {
   if (!u.email_verificado) throw fallo(403, 'Antes de entrar, confirma tu correo con el enlace que te enviamos.')
 
   ejecutar('UPDATE usuarios SET fallos = 0, bloqueado_hasta = NULL, ultimo_acceso = ? WHERE id = ?', ahoraIso(), u.id)
-  const completa = u.rol === 'entidad' && !u.totp_activo
+  // Dirección siempre necesita el segundo factor; entidades y comercios, solo si lo han activado.
+  const completa = u.rol !== 'direccion' && !u.totp_activo
   crearSesion(c, u, completa)
   anotar(c, u.id, 'entrar')
   return c.json({ falta: pendiente({ rol: u.rol, totpActivo: Boolean(u.totp_activo) }, completa) })
@@ -152,8 +153,9 @@ cuenta.post('/2fa/activar', exigir({ aMedias: true }), async (c) => {
   return c.json({ falta: null })
 })
 
-/** Las entidades pueden quitarse el doble factor; dirección no. */
-cuenta.post('/2fa/quitar', exigir({ rol: 'entidad' }), async (c) => {
+/** Entidades y comercios pueden quitarse el doble factor; dirección no. */
+cuenta.post('/2fa/quitar', exigir(), async (c) => {
+  if (c.get('usuario').rol === 'direccion') throw fallo(403, 'Dirección no puede quitarse el doble factor.')
   const datos = await leer(c, z.object({ clave, codigo: codigo2fa }))
   const u = uno<FilaUsuario>('SELECT * FROM usuarios WHERE id = ?', c.get('usuario').id)!
   if (!u.totp_activo || !u.totp_secreto) throw fallo(400, 'El doble factor no está activado.')

@@ -1,7 +1,7 @@
 import type { Context } from 'hono'
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
 import { createMiddleware } from 'hono/factory'
-import type { EstadoEntidad, Rol } from '../../compartido/tipos.ts'
+import type { EstadoComercio, EstadoEntidad, Rol } from '../../compartido/tipos.ts'
 import { ejecutar, uno } from '../bd.ts'
 import { config } from '../config.ts'
 import { fallo, ipDe, type Entorno, type UsuarioSesion } from '../contexto.ts'
@@ -15,6 +15,7 @@ const HORA = 3600_000
 const DURACION: Record<Rol, { total: number; inactividad: number }> = {
   direccion: { total: 12 * HORA, inactividad: 2 * HORA },
   entidad: { total: 30 * 24 * HORA, inactividad: 14 * 24 * HORA },
+  comercio: { total: 30 * 24 * HORA, inactividad: 14 * 24 * HORA },
 }
 
 export function crearSesion(c: Context, usuario: { id: number; rol: Rol }, segundoFactor: boolean) {
@@ -56,6 +57,9 @@ interface FilaSesion {
   entidad_id: number | null
   entidad_nombre: string | null
   entidad_estado: EstadoEntidad | null
+  comercio_id: number | null
+  comercio_nombre: string | null
+  comercio_estado: EstadoComercio | null
 }
 
 export function leerSesion(c: Context): { usuario: UsuarioSesion; hash: string; segundoFactor: boolean } | null {
@@ -64,8 +68,10 @@ export function leerSesion(c: Context): { usuario: UsuarioSesion; hash: string; 
   const hash = huella(ficha)
   const fila = uno<FilaSesion>(
     `SELECT s.hash, s.segundo_factor, s.caduca, s.ultimo_uso, u.id, u.email, u.nombre, u.rol, u.activo, u.totp_activo,
-            u.entidad_id, e.nombre AS entidad_nombre, e.estado AS entidad_estado
+            u.entidad_id, e.nombre AS entidad_nombre, e.estado AS entidad_estado,
+            u.comercio_id, co.nombre AS comercio_nombre, co.estado AS comercio_estado
        FROM sesiones s JOIN usuarios u ON u.id = s.usuario_id LEFT JOIN entidades e ON e.id = u.entidad_id
+       LEFT JOIN comercios co ON co.id = u.comercio_id
       WHERE s.hash = ?`,
     hash,
   )
@@ -86,6 +92,7 @@ export function leerSesion(c: Context): { usuario: UsuarioSesion; hash: string; 
     usuario: {
       id: fila.id, email: fila.email, nombre: fila.nombre, rol: fila.rol, totpActivo: Boolean(fila.totp_activo),
       entidadId: fila.entidad_id, entidadNombre: fila.entidad_nombre, entidadEstado: fila.entidad_estado,
+      comercioId: fila.comercio_id, comercioNombre: fila.comercio_nombre, comercioEstado: fila.comercio_estado,
     },
   }
 }

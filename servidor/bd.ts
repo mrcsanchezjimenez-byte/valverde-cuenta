@@ -8,17 +8,23 @@ export function iniciarBd(ruta: string) {
   const bd = new DatabaseSync(ruta)
   bd.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;')
   const version = (bd.prepare('PRAGMA user_version').get() as { user_version: number }).user_version
+  // Algunas migraciones rehacen tablas: las claves ajenas se apagan mientras tanto y se comprueban al final.
+  if (version < MIGRACIONES.length) bd.exec('PRAGMA foreign_keys = OFF')
   for (let i = version; i < MIGRACIONES.length; i++) {
     bd.exec('BEGIN')
     try {
       bd.exec(MIGRACIONES[i])
+      const rotas = bd.prepare('PRAGMA foreign_key_check').all()
+      if (rotas.length) throw new Error(`La migración ${i + 1} deja referencias rotas: ${JSON.stringify(rotas.slice(0, 3))}`)
       bd.exec(`PRAGMA user_version = ${i + 1}`)
       bd.exec('COMMIT')
     } catch (e) {
       bd.exec('ROLLBACK')
+      bd.exec('PRAGMA foreign_keys = ON')
       throw e
     }
   }
+  bd.exec('PRAGMA foreign_keys = ON')
   actual = bd
   return bd
 }

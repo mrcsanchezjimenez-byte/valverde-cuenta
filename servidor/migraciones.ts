@@ -270,4 +270,140 @@ export const MIGRACIONES: string[] = [
   );
   CREATE INDEX fotos_evento_evento ON fotos_evento(evento_id, estado);
   `,
+
+  /* 6 · Comercios: guía, cuentas propias, planes de pago, campañas, ofertas y visitas */ `
+  CREATE TABLE comercios (
+    id INTEGER PRIMARY KEY,
+    slug TEXT NOT NULL UNIQUE,
+    nombre TEXT NOT NULL,
+    categoria TEXT NOT NULL,
+    -- CIF, DNI o NIE. Vacío si lo da de alta dirección sin tenerlo aún.
+    nif TEXT UNIQUE,
+    descripcion TEXT NOT NULL DEFAULT '',
+    direccion TEXT NOT NULL DEFAULT '',
+    municipio_id INTEGER NOT NULL REFERENCES municipios(id),
+    lat REAL NOT NULL,
+    lng REAL NOT NULL,
+    telefono TEXT NOT NULL DEFAULT '',
+    whatsapp TEXT NOT NULL DEFAULT '',
+    email_publico TEXT NOT NULL DEFAULT '',
+    web TEXT NOT NULL DEFAULT '',
+    instagram TEXT NOT NULL DEFAULT '',
+    facebook TEXT NOT NULL DEFAULT '',
+    horario TEXT NOT NULL DEFAULT '',
+    logo TEXT,
+    fotos TEXT NOT NULL DEFAULT '[]',
+    -- Contacto privado (para dirección).
+    persona_contacto TEXT NOT NULL DEFAULT '',
+    telefono_contacto TEXT NOT NULL DEFAULT '',
+    estado TEXT NOT NULL DEFAULT 'pendiente' CHECK (estado IN ('pendiente','verificado','rechazado','suspendido')),
+    motivo TEXT,
+    nota TEXT NOT NULL DEFAULT '',
+    -- Cambios propuestos por el comercio en su ficha, a la espera de revisión (JSON).
+    cambios TEXT,
+    creado TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
+    revisado TEXT,
+    revisado_por INTEGER
+  );
+
+  -- Usuarios: se rehace la tabla para admitir cuentas de comercio.
+  CREATE TABLE usuarios_nueva (
+    id INTEGER PRIMARY KEY,
+    email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    nombre TEXT NOT NULL,
+    rol TEXT NOT NULL CHECK (rol IN ('direccion','entidad','comercio')),
+    entidad_id INTEGER REFERENCES entidades(id),
+    comercio_id INTEGER REFERENCES comercios(id),
+    hash_clave TEXT,
+    email_verificado INTEGER NOT NULL DEFAULT 0,
+    totp_secreto TEXT,
+    totp_activo INTEGER NOT NULL DEFAULT 0,
+    totp_ultimo_paso INTEGER NOT NULL DEFAULT 0,
+    activo INTEGER NOT NULL DEFAULT 1,
+    fallos INTEGER NOT NULL DEFAULT 0,
+    bloqueado_hasta TEXT,
+    creado TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
+    ultimo_acceso TEXT,
+    CHECK ((rol = 'entidad') = (entidad_id IS NOT NULL)),
+    CHECK ((rol = 'comercio') = (comercio_id IS NOT NULL))
+  );
+  INSERT INTO usuarios_nueva (id, email, nombre, rol, entidad_id, hash_clave, email_verificado, totp_secreto, totp_activo,
+      totp_ultimo_paso, activo, fallos, bloqueado_hasta, creado, ultimo_acceso)
+    SELECT id, email, nombre, rol, entidad_id, hash_clave, email_verificado, totp_secreto, totp_activo,
+      totp_ultimo_paso, activo, fallos, bloqueado_hasta, creado, ultimo_acceso FROM usuarios;
+  DROP TABLE usuarios;
+  ALTER TABLE usuarios_nueva RENAME TO usuarios;
+
+  ALTER TABLE imagenes ADD COLUMN comercio_id INTEGER REFERENCES comercios(id);
+
+  CREATE TABLE campanas (
+    id INTEGER PRIMARY KEY,
+    slug TEXT NOT NULL UNIQUE,
+    nombre TEXT NOT NULL,
+    descripcion TEXT NOT NULL DEFAULT '',
+    desde TEXT NOT NULL,
+    hasta TEXT NOT NULL,
+    activa INTEGER NOT NULL DEFAULT 1,
+    creado TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+  );
+
+  -- Cada periodo contratado por un comercio. Se apunta a mano lo que se cobra fuera de la app.
+  CREATE TABLE planes (
+    id INTEGER PRIMARY KEY,
+    comercio_id INTEGER NOT NULL REFERENCES comercios(id) ON DELETE CASCADE,
+    tipo TEXT NOT NULL CHECK (tipo IN ('escaparate','destacado','campana','promocion','patrocinio')),
+    campana_id INTEGER REFERENCES campanas(id),
+    desde TEXT NOT NULL,
+    hasta TEXT NOT NULL,
+    importe_centimos INTEGER NOT NULL DEFAULT 0,
+    estado_pago TEXT NOT NULL DEFAULT 'pendiente' CHECK (estado_pago IN ('pendiente','pagado','anulado')),
+    metodo TEXT NOT NULL DEFAULT '',
+    factura TEXT NOT NULL DEFAULT '',
+    pagado_el TEXT,
+    nota TEXT NOT NULL DEFAULT '',
+    creado TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
+    creado_por INTEGER
+  );
+  CREATE INDEX planes_comercio ON planes(comercio_id, hasta);
+
+  CREATE TABLE ofertas (
+    id INTEGER PRIMARY KEY,
+    comercio_id INTEGER NOT NULL REFERENCES comercios(id) ON DELETE CASCADE,
+    titulo TEXT NOT NULL,
+    texto TEXT NOT NULL DEFAULT '',
+    imagen TEXT,
+    desde TEXT NOT NULL,
+    hasta TEXT NOT NULL,
+    campana_id INTEGER REFERENCES campanas(id),
+    estado TEXT NOT NULL DEFAULT 'pendiente' CHECK (estado IN ('pendiente','publicada','rechazada','retirada')),
+    motivo TEXT,
+    creado TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
+    revisado TEXT,
+    revisado_por INTEGER
+  );
+  CREATE INDEX ofertas_comercio ON ofertas(comercio_id, estado);
+
+  -- Visitas a la ficha de cada comercio por día, sin nada de quien la visita.
+  CREATE TABLE visitas_comercio (
+    comercio_id INTEGER NOT NULL REFERENCES comercios(id) ON DELETE CASCADE,
+    dia TEXT NOT NULL,
+    cuenta INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (comercio_id, dia)
+  );
+
+  CREATE TABLE avisos_comercio (
+    id INTEGER PRIMARY KEY,
+    comercio_id INTEGER NOT NULL REFERENCES comercios(id) ON DELETE CASCADE,
+    tipo TEXT NOT NULL CHECK (tipo IN ('bien','mal','info')),
+    titulo TEXT NOT NULL,
+    texto TEXT NOT NULL DEFAULT '',
+    leido INTEGER NOT NULL DEFAULT 0,
+    creado TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+  );
+
+  -- Primeras campañas propuestas (se cambian desde el panel).
+  INSERT INTO campanas (slug, nombre, descripcion, desde, hasta) VALUES
+    ('navidad-2026', 'Navidad y Reyes', 'Regalos, dulces y todo lo de estas fiestas, en los comercios del pueblo.', '2026-12-01', '2027-01-06'),
+    ('rebajas-invierno-2027', 'Rebajas de invierno', 'Las rebajas de los comercios de Valverde y alrededores.', '2027-01-07', '2027-02-15');
+  `,
 ]

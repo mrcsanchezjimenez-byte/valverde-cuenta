@@ -59,7 +59,7 @@ export interface ConfigInscripcion {
 
 export type EstadoEvento = 'borrador' | 'pendiente' | 'publicado' | 'rechazado' | 'cancelado' | 'retirado'
 export type EstadoEntidad = 'pendiente' | 'verificada' | 'rechazada' | 'suspendida'
-export type Rol = 'direccion' | 'entidad'
+export type Rol = 'direccion' | 'entidad' | 'comercio'
 
 export const TIPOS_ENTIDAD = [
   { id: 'asociacion', nombre: 'Asociación' },
@@ -310,3 +310,174 @@ export interface LugarGestion extends Lugar {
 
 /** Firma pública de una historia. */
 export const firmaPublica = (firma: 'nombre' | 'anonimo', autor: string) => (firma === 'nombre' && autor ? autor : 'Un vecino o vecina de Valverde')
+
+// ——— Comercios (fase 3) ———
+
+export const CATEGORIAS_COMERCIO = [
+  { id: 'alimentacion', nombre: 'Alimentación', emoji: '🥖' },
+  { id: 'hosteleria', nombre: 'Bares y restaurantes', emoji: '☕' },
+  { id: 'calzado', nombre: 'Botos y calzado', emoji: '👢' },
+  { id: 'moda', nombre: 'Moda y complementos', emoji: '👗' },
+  { id: 'salud', nombre: 'Salud y belleza', emoji: '💇' },
+  { id: 'hogar', nombre: 'Hogar y regalos', emoji: '🎁' },
+  { id: 'artesania', nombre: 'Artesanía', emoji: '🧵' },
+  { id: 'servicios', nombre: 'Servicios', emoji: '🔧' },
+  { id: 'ocio', nombre: 'Ocio y turismo', emoji: '🌳' },
+] as const
+export type CategoriaComercio = (typeof CATEGORIAS_COMERCIO)[number]['id']
+
+export type TipoPlan = 'escaparate' | 'destacado' | 'campana' | 'promocion' | 'patrocinio'
+export type EstadoPago = 'pendiente' | 'pagado' | 'anulado'
+export type EstadoComercio = 'pendiente' | 'verificado' | 'rechazado' | 'suspendido'
+export type EstadoOferta = 'pendiente' | 'publicada' | 'rechazada' | 'retirada'
+
+/** Lo que incluye cada plan y su precio orientativo (ver docs/politica-cobros.md). */
+export const PLANES: Record<TipoPlan, { nombre: string; resumen: string; precio: string }> = {
+  escaparate: { nombre: 'Escaparate', resumen: 'Descripción, logo, fotos, web y redes, y ofertas.', precio: '15 €/mes · 150 €/año' },
+  destacado: { nombre: 'Destacado', resumen: 'Escaparate + tarjeta «Patrocinado» en portada, agenda y guía.', precio: '35 €/mes · 350 €/año' },
+  campana: { nombre: 'Campaña', resumen: 'Sale en la sección de la campaña con sus ofertas.', precio: '30–60 € por campaña' },
+  promocion: { nombre: 'Promoción puntual', resumen: 'Una oferta destacada durante una semana.', precio: '10 €' },
+  patrocinio: { nombre: 'Patrocinio', resumen: 'Su nombre en un contenido (yincana, historia, placa).', precio: 'A medida' },
+}
+
+/** Qué puede hacer un comercio hoy según sus planes activos. */
+export interface Capacidades {
+  escaparate: boolean
+  destacado: boolean
+  /** Puede publicar ofertas (cualquier plan de pago activo). */
+  ofertas: boolean
+  campanas: number[]
+}
+
+export interface DatosComercio {
+  nombre: string
+  categoria: CategoriaComercio
+  descripcion: string
+  direccion: string
+  municipioId: number
+  lat: number
+  lng: number
+  telefono: string
+  whatsapp: string
+  emailPublico: string
+  web: string
+  instagram: string
+  facebook: string
+  horario: string
+  logo: string | null
+  fotos: string[]
+}
+
+/** Lo que ve el público de un comercio (lo de pago, solo si tiene plan). */
+export interface ComercioPublico {
+  slug: string
+  nombre: string
+  categoria: CategoriaComercio
+  direccion: string
+  municipio: string
+  lat: number
+  lng: number
+  telefono: string
+  horario: string
+  nivel: 'basica' | 'escaparate' | 'destacado'
+  descripcion?: string
+  logo?: string
+  fotos?: string[]
+  whatsapp?: string
+  emailPublico?: string
+  web?: string
+  instagram?: string
+  facebook?: string
+  ofertas: OfertaPublica[]
+}
+
+export interface OfertaPublica {
+  id: number
+  titulo: string
+  texto: string
+  imagen: string | null
+  hasta: string
+  comercio: { slug: string; nombre: string }
+  campana: string | null
+}
+
+export interface CampanaPublica {
+  slug: string
+  nombre: string
+  descripcion: string
+  desde: string
+  hasta: string
+  comercios: { slug: string; nombre: string; categoria: CategoriaComercio; logo: string | null }[]
+  ofertas: OfertaPublica[]
+}
+
+export interface Plan {
+  id: number
+  comercioId: number
+  comercioNombre: string
+  tipo: TipoPlan
+  campanaId: number | null
+  campanaNombre: string | null
+  desde: string
+  hasta: string
+  importe: number
+  estadoPago: EstadoPago
+  metodo: string
+  factura: string
+  pagadoEl: string | null
+  nota: string
+  /** activo hoy, futuro o pasado. */
+  vigencia: 'activo' | 'futuro' | 'caducado'
+}
+
+export interface Campana {
+  id: number
+  slug: string
+  nombre: string
+  descripcion: string
+  desde: string
+  hasta: string
+  activa: boolean
+  comercios: number
+}
+
+export interface Oferta {
+  id: number
+  comercioId: number
+  comercioNombre: string
+  titulo: string
+  texto: string
+  imagen: string | null
+  imagenUrl: string | null
+  desde: string
+  hasta: string
+  campanaId: number | null
+  estado: EstadoOferta
+  motivo: string | null
+  creado: string
+}
+
+export interface ComercioGestion extends DatosComercio {
+  id: number
+  slug: string
+  municipio: string
+  nif: string | null
+  personaContacto: string
+  telefonoContacto: string
+  estado: EstadoComercio
+  motivo: string | null
+  nota: string
+  cambios: DatosComercio | null
+  logoUrl: string | null
+  fotosUrl: string[]
+  capacidades: Capacidades
+  planActual: TipoPlan | null
+  caduca: string | null
+  pagoPendiente: boolean
+  email: string | null
+  visitas30: number
+  creado: string
+}
+
+/** Cuánto contenido patrocinado se mete en la agenda: uno cada tantos eventos. */
+export const PATROCINADO_CADA = 8

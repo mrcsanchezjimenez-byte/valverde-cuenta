@@ -1,7 +1,7 @@
 import type { Context } from 'hono'
 import { getConnInfo } from '@hono/node-server/conninfo'
 import { HTTPException } from 'hono/http-exception'
-import type { EstadoEntidad, Rol } from '../compartido/tipos.ts'
+import type { EstadoComercio, EstadoEntidad, Rol } from '../compartido/tipos.ts'
 import { config } from './config.ts'
 
 export interface UsuarioSesion {
@@ -13,6 +13,9 @@ export interface UsuarioSesion {
   entidadId: number | null
   entidadNombre: string | null
   entidadEstado: EstadoEntidad | null
+  comercioId: number | null
+  comercioNombre: string | null
+  comercioEstado: EstadoComercio | null
 }
 
 export type Entorno = {
