@@ -75,33 +75,40 @@ Decisiones de partida (27/11/2026):
 **Pendiente de decidir:** placas con el Ayuntamiento o, si no colabora, en comercios. Un comercio con placa sería un «Punto de historia» en la app.
 
 **Ideas para seguir:**
-- Recompensas del «pasaporte» con comercios patrocinadores (fase 3).
+- Recompensas del «pasaporte» con comercios patrocinadores (ver fase 3).
 - Recordatorios y «este finde en Valverde» con notificaciones (fase 4: necesitan la app nativa).
 - Que una entidad pueda añadir más datos a su ficha pública (logo, redes).
 
-## Fase 3 · Comercios y anuncios
+## Fase 3 · Comercios y anuncios ✅ hecha
 
-- **Guía de comercios** con ficha básica gratis: nombre, dirección, horario y teléfono.
-- **Planes de pago**. Precios por validar con 3 o 4 comerciantes:
+Los planes, precios y normas están en la [política de cobros](politica-cobros.md) (borrador).
 
-  | Plan | Qué incluye | Precio orientativo |
-  |---|---|---|
-  | Escaparate | Ficha completa y ofertas | 15 €/mes o 150 €/año |
-  | Destacado | Además, tarjeta patrocinada en Inicio y Agenda | 35 €/mes o 350 €/año |
-  | Campaña | Navidad, feria, Black Friday, rebajas | 30–60 € |
-  | Promoción puntual | Una oferta durante una semana | 10 € |
-  | Patrocinio | De la yincana o de una historia | A medida |
+- **Guía de comercios** en la app: la pestaña «Mapa» pasa a ser «Comercios».
+  - Buscador y categorías. La ficha básica es gratis: nombre, categoría, dirección y mapa, teléfono y horario.
+  - Con **Escaparate**: descripción, logo, fotos, web, redes, WhatsApp y ofertas.
+  - Con **Destacado**: además, la tarjeta «Patrocinado».
+- **Publicidad con límite**: como mucho un patrocinado cada 8 eventos en la agenda y uno solo en la portada, siempre marcado y rotando cada día.
+- **Campañas** (Navidad, rebajas, Black Friday…): banner en la portada y sección propia con los comercios que la contratan y sus ofertas.
+- **Ofertas**: las crea el comercio, las revisa dirección y solo salen entre sus fechas.
+- **Cuentas de comercio**, separadas de las de entidades:
+  - Alta desde la web con CIF, DNI o NIE, o invitación desde el panel.
+  - Su panel: visitas a la ficha en 30 días, su plan, la ficha y las ofertas.
+  - Los cambios de una ficha ya publicada esperan a dirección; mientras, sigue la versión anterior.
+- **Control de cobros** en el panel de dirección:
+  - Plan, fechas, importe, forma de pago y número de factura.
+  - Lo cobrado este mes y este año, y lo pendiente.
+  - Aviso de los planes que caducan en 15 días.
+  - Lo de pago se apaga solo al caducar; la ficha básica sigue.
+- El cobro se hace **fuera de la app** (transferencia, Bizum o domiciliación, con factura). Así no hay comisión de Apple ni de Google.
 
-  Los 20 primeros, como «comercios fundadores», pagan la mitad el primer año.
-- **Límite de anuncios**: como mucho un contenido patrocinado por cada X eventos, siempre marcado como «Patrocinado».
-- Cuentas de comercio, separadas de las de entidades.
-- Control de cobros desde el panel:
-  - Plan, fechas y estado de pago.
-  - Aviso antes de que caduque.
-  - El anuncio se apaga solo si no se renueva.
-- El cobro se hace **fuera de la app**, con factura y transferencia, domiciliación o enlace de pago. Así no hay comisión de Apple ni de Google.
-- Documento de **política de cobros** y contrato tipo para anunciantes.
-- Hay que aclarar con la gestoría cómo facturar como autónomos (IVA, quién factura cada cosa).
+**Pendiente de decidir:**
+- Precios definitivos, después de hablar con 3 o 4 comerciantes.
+- Con la gestoría: IVA, quién factura cada cosa y el programa de facturación (Verifactu).
+- Contrato tipo para anunciantes.
+
+**Ideas para seguir:**
+- Recompensas del «pasaporte» de la yincana en comercios patrocinadores.
+- «Punto de historia»: un comercio que acoge una placa QR.
 
 ## Fase 4 · App nativa
 

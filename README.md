@@ -8,12 +8,12 @@ Proyecto independiente que llevan Pilar y Marcos.
 - **Fotos de cómo fue** cada evento, aprobadas por dirección.
 - **Historias del pueblo**: la gente las cuenta (escritas o grabadas) y se leen en placas con QR repartidas por el pueblo.
 - **Yincana cultural** por el casco urbano.
-- **Comercios y empresas**: se anuncian pagando (fase 3).
+- **Guía de comercios**: ficha básica gratis; los comercios y empresas que quieran más visibilidad pagan un plan, con publicidad discreta y siempre marcada ([política de cobros](docs/politica-cobros.md)).
 
 ### Demostración para enseñar
 
 - App: https://mrcsanchezjimenez-byte.github.io/valverde-cuenta/
-- Panel: https://mrcsanchezjimenez-byte.github.io/valverde-cuenta/gestion/ (botones para entrar como dirección o como asociación).
+- Panel: https://mrcsanchezjimenez-byte.github.io/valverde-cuenta/gestion/ (botones para entrar como dirección, como asociación o como comercio).
 
 Funciona sin servidor: los datos son ficticios y se guardan solo en el navegador de quien la prueba. En local: `npm run dev -- --mode demo` y `npx vite --config vite.gestion.config.ts --mode demo --port 5276`.
 
@@ -24,7 +24,7 @@ Plan por fases: [docs/fases.md](docs/fases.md) · Seguridad: [docs/seguridad.md]
 | Pieza | Carpeta | En local |
 |---|---|---|
 | **App** que usa la gente (será nativa con Capacitor; hoy también web instalable) | `src/` | http://localhost:5273/valverde-cuenta/ |
-| **Panel de gestión**: dirección revisa; las entidades envían eventos | `gestion/` | http://localhost:5274/gestion/ |
+| **Panel de gestión**: dirección revisa; las entidades envían eventos y los comercios llevan su ficha | `gestion/` | http://localhost:5274/gestion/ |
 | **Servidor**: datos, cuentas y seguridad (Node + SQLite, sin servicios externos) | `servidor/` | http://localhost:8787 |
 
 `compartido/` tiene lo que usan las tres: tipos, categorías y la comprobación del CIF.

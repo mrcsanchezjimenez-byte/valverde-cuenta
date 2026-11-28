@@ -18,7 +18,7 @@ Qué protege hoy el sistema y qué queda para la puesta en marcha. Todo lo marca
 - **Sesiones**:
   - Cookie `HttpOnly`, `SameSite=Strict` y, en producción, `Secure` con prefijo `__Host-` (✓ prueba).
   - En la base de datos solo se guarda la huella de la sesión, no la sesión.
-  - Dirección: 12 h como máximo y se cierra tras 2 h sin uso. Entidades: 30 días.
+  - Dirección: 12 h como máximo y se cierra tras 2 h sin uso. Entidades: 30 días. Comercios: 30 días, y se cierra tras 14 días sin uso.
   - Cerrar sesión la invalida en el servidor (✓ prueba).
   - Cambiar la contraseña o activar el doble factor cierra las demás sesiones abiertas.
   - Suspender una entidad la echa al momento (✓ prueba).
@@ -31,6 +31,10 @@ Qué protege hoy el sistema y qué queda para la puesta en marcha. Todo lo marca
 
 - Cada entidad solo ve y toca sus eventos. Si pide uno ajeno, recibe «no existe», sin pistas (✓ prueba).
 - Una entidad no entra en el panel de dirección (✓ prueba).
+- Un comercio solo ve y toca su ficha y sus ofertas, y no entra en dirección (✓ prueba).
+- Los cambios de un comercio ya publicado no salen hasta que dirección los aprueba (✓ prueba).
+- Lo de pago lo decide el servidor según el plan en vigor: sin plan solo sale la ficha básica, aunque el comercio haya rellenado más (✓ prueba).
+- Las ofertas necesitan plan y aprobación de dirección (✓ prueba).
 - Solo una entidad verificada puede mandar eventos a revisión (✓ prueba).
 - La agenda pública solo muestra lo publicado, sin datos internos como motivos, notas o estados (✓ prueba).
 
@@ -72,6 +76,8 @@ Qué protege hoy el sistema y qué queda para la puesta en marcha. Todo lo marca
   - Se guardan con nombre aleatorio fuera de la carpeta pública y solo se sirven si están aprobadas (✓ prueba).
   - Límites de tamaño por archivo y por envío.
 - **Escaneos de las placas**: solo se cuenta el número por día, sin nada que identifique a quien escanea.
+- **Visitas a las fichas de comercio**: igual, solo el número por día. Una misma conexión cuenta una vez cada media hora (✓ prueba).
+- **Comercios**: el NIF y la persona de contacto solo los ve dirección; nunca salen en la app.
 - **Micrófono**: solo lo puede pedir el propio panel (modo entrevista); en el resto de páginas del servidor está bloqueado.
 
 ## Registro de actividad

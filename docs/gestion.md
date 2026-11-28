@@ -33,6 +33,12 @@ El número junto a «Pendientes» dice cuánto hay por revisar. Además, a direc
 
 La letra del CIF ya da una pista (G asociación, P ayuntamiento, R hermandad…), pero no basta. Si el correo está «sin confirmar», hay que esperar.
 
+**Ofertas de comercios.** «Publicar» o «No» (con motivo). El comercio recibe un aviso.
+
+**Comercios por revisar.** Altas nuevas y cambios en fichas ya publicadas. Comprobad que el negocio existe y está en la zona.
+
+**Planes que caducan pronto.** Los que terminan en los próximos 15 días: es el momento de llamar para renovar.
+
 ## Historias del pueblo
 
 - **Historias**: llegan desde la app («Cuéntanos una historia») y salen en «Pendientes».
@@ -54,6 +60,23 @@ Las entidades suben fotos de sus eventos ya publicados. En «Pendientes», marca
 ## Inscripciones
 
 Si un evento pide inscripción, en su ficha ves la lista de apuntados en solo lectura. La gestiona la entidad: descargar la lista, escribir a todos, cancelar a alguien. Los datos se borran solos un mes después del evento.
+
+## Comercios y anuncios
+
+En «Comercios» hay tres pestañas: **Comercios**, **Campañas** y **Cobros**. Las normas y precios están en la [política de cobros](politica-cobros.md).
+
+- **Comercios**: la guía entera, con filtros (por revisar, con plan, solo ficha básica, suspendidos).
+  - «Dar de alta» mete un comercio a mano. Después, «Crearle una cuenta» le manda una invitación para que lleve su ficha.
+  - En la ficha de cada uno: sus planes, sus ofertas, la ficha, el contacto privado y una nota interna.
+  - **Verificar** lo publica en la guía. **Quitar de la guía…** lo suspende y pierde el acceso.
+- **Planes y cobros**: «Añadir plan o renovación» con plan, fechas, importe, si está pagado y número de factura.
+  - Un plan cuenta solo entre sus fechas. Al caducar, lo de pago se apaga solo; la ficha básica sigue.
+  - «Anulado» lo apaga al momento.
+  - La factura se hace con el programa de facturación o la gestoría; aquí solo se apunta su número.
+- **Campañas**: nombre, fechas y descripción. Durante esas fechas, la app enseña el banner y la sección con los comercios que la han contratado.
+- **Cobros**: lo cobrado este mes y este año, lo pendiente y los planes que caducan.
+
+El comercio entra en el mismo panel con su cuenta y ve solo lo suyo: visitas a su ficha, su plan, la ficha y sus ofertas.
 
 ## Otras pantallas
 
